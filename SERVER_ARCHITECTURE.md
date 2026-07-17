@@ -105,12 +105,11 @@
 ## Cron Jobs
 
 ```
-0 0,12 * * *  cd /DarkSpace/InternshipPortal && python3 manage.py send_pending_evaluation_emails
+0 0,12 * * *  cd /home/ubuntu/InternshipPortal && python3 manage.py send_pending_evaluation_emails
 ```
 
 Runs at **midnight (00:00 UTC)** and **noon (12:00 UTC)** daily.
-
-> **Note:** Cron references `/DarkSpace/InternshipPortal/` but the live server runs from `/home/ubuntu/InternshipPortal/`. Both share the same database and `.env` credentials.
+Log output: `/home/ubuntu/InternshipPortal/logs/cron_email.log`
 
 ---
 

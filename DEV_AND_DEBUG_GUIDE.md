@@ -101,7 +101,7 @@
 
 ### System Crontab
 ```
-0 0,12 * * * cd /DarkSpace/InternshipPortal && python3 manage.py send_pending_evaluation_emails
+0 0,12 * * * cd /home/ubuntu/InternshipPortal && python3 manage.py send_pending_evaluation_emails
 ```
 
 ### APScheduler Jobs (in-process)
@@ -153,7 +153,7 @@ cd /home/ubuntu/InternshipPortal
 ### Check Server Logs
 ```bash
 tail -100 /home/ubuntu/nohup.out                    # Django request log
-tail -50 /DarkSpace/InternshipPortal/logs/cron_email.log  # Cron email log
+tail -50 /home/ubuntu/InternshipPortal/logs/cron_email.log  # Cron email log
 ```
 
 ### Check Running Processes
