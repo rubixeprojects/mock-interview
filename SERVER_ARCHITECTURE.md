@@ -100,15 +100,6 @@
 
 ---
 
-### 7. Elasticsearch
-
-| Item | Value |
-|------|-------|
-| **Port** | `9200` |
-| **Purpose** | Full-text search for students, teams, submissions |
-| **Config** | Single-node, xpack security disabled |
-| **Memory** | 512MB heap |
-
 ---
 
 ## Cron Jobs
@@ -172,7 +163,6 @@ Runs at **midnight (00:00 UTC)** and **noon (12:00 UTC)** daily.
 | `8501` | Streamlit | Project Evaluation (prj1.py) |
 | `8503` | Streamlit | Status Dashboard |
 | `6379` | Redis | Cache |
-| `9200` | Elasticsearch | Search |
 | `3306` | MySQL (RDS) | Database (external: `database-1.c386s6kwe2mp.ap-south-1.rds.amazonaws.com`) |
 
 ---

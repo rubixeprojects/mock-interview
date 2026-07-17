@@ -43,7 +43,7 @@ cd /home/ubuntu/InternshipPortal
 - **Database:** MySQL 8 (AWS RDS)
 - **Storage:** AWS S3
 - **Cache:** Redis
-- **Search:** Elasticsearch
+- **Search:** SQL LIKE queries
 - **LLM:** Gemini + Groq (fallback)
 - **Email:** Gmail SMTP
 - **Trainer UI:** Streamlit

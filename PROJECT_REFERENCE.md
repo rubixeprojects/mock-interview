@@ -15,7 +15,7 @@ The main Django app handling all student-facing and evaluation logic.
 | `scheduler.py` | APScheduler job definitions (email, sync, import) |
 | `admin.py` | Django admin site registration |
 | `decorators.py` | Auth decorators for views |
-| `documents.py` | Elasticsearch document definitions |
+| `documents.py` | Placeholder (Elasticsearch removed, search uses SQL LIKE) |
 | `health.py` | Health check endpoints (for K8s probes) |
 | `media_views.py` | Media file serving (downloads) |
 
@@ -57,7 +57,7 @@ The main Django app handling all student-facing and evaluation logic.
 | `assign_team_ids` | Assigns team IDs to pending teams |
 | `sync_evaluation_status` | Syncs evaluated flag between TeamProject ↔ Submission |
 | `sync_media_to_s3` | Uploads local media files to S3 |
-| `rebuild_es_index` | Rebuilds Elasticsearch indexes |
+| `rebuild_es_index` | No-op (Elasticsearch removed, kept for compatibility) |
 
 ### `ControlCenter/` — Admin Authentication
 
