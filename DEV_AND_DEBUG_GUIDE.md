@@ -109,7 +109,8 @@
 |-----|----------|---------|
 | `send_pending_evaluation_emails` | Every 12 hours | Send evaluation emails when visibility_after passes |
 | `sync_ready_for_client_pick` | Every 6 hours | Transition students to client project phase |
-| `import_students_from_sheets` | Daily at 02:00 | Import new students from Google Sheets |
+
+> **Note:** `import_students_from_sheets` is a management command only — it is NOT registered as an APScheduler job.
 
 ---
 

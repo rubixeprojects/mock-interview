@@ -12,7 +12,8 @@ The main Django app handling all student-facing and evaluation logic.
 | `admin_views.py` | Admin portal API endpoints (dashboard, student management, bulk ops) |
 | `urls.py` | URL routing for student + admin portal |
 | `signals.py` | Django signals — syncs `Submission.evaluated` when `Evaluation` is saved |
-| `scheduler.py` | APScheduler job definitions (email, sync, import) |
+| `scheduler.py` | APScheduler job definitions (email send, client-pick sync) |
+| `constants.py` | Course codes, capstone requirements, AIE two-phase statuses |
 | `admin.py` | Django admin site registration |
 | `decorators.py` | Auth decorators for views |
 | `documents.py` | Placeholder (Elasticsearch removed, search uses SQL LIKE) |
@@ -59,26 +60,26 @@ The main Django app handling all student-facing and evaluation logic.
 | `sync_media_to_s3` | Uploads local media files to S3 |
 | `rebuild_es_index` | No-op (Elasticsearch removed, kept for compatibility) |
 
-### `ControlCenter/` — Admin Authentication
+### `ControlCenter/` — Admin Authentication & Audit
 
 | File | Purpose |
-|------|---------|
-| `views.py` | Admin login/logout/status API + manage admins |
-| `models.py` | Admin user model |
-| `urls.py` | Routes under `/portal/api/control-center/` |
+|------|--------|
+| `views.py` | Admin login/logout/status API, manage admins, audit logs |
+| `models.py` | `AdminAccount` (admin users) + `AuditLog` (action tracking) |
+| `urls.py` | Routes under `/portal/api/control-center/` (`login/`, `logout/`, `status/`, `admins/`, `audit-logs/`) |
 
 ### `InternshipPortal/` — Django Project Settings
 
 | File | Purpose |
 |------|---------|
-| `settings.py` | All config — DB, S3, Redis, Elasticsearch, logging, auth |
+| `settings.py` | All config — DB, S3, Redis, logging, auth |
 | `.env` | Environment variables (credentials, API keys) |
 | `urls.py` | Root URL config — includes Submissions + ControlCenter |
 | `wsgi.py` / `asgi.py` | WSGI/ASGI entry points |
 
 ---
 
-## Database Models (17 total)
+## Database Models (19 total across 2 apps)
 
 | Model | Table | Purpose |
 |-------|-------|---------|
@@ -99,6 +100,13 @@ The main Django app handling all student-facing and evaluation logic.
 | `CapstoneClientCompletionLog` | — | Logs when team completes all capstone projects |
 | `RegistrationWhitelist` | — | Whitelist for student registration |
 | `CSVUploadLog` | — | Audit log for CSV bulk imports |
+
+**ControlCenter Models:**
+
+| Model | Table | Purpose |
+|-------|-------|---------|
+| `AdminAccount` | `controlcenter_adminaccount` | Admin portal user accounts |
+| `AuditLog` | `controlcenter_auditlog` | Tracks admin actions for audit trail |
 
 ---
 
@@ -148,11 +156,20 @@ The main Django app handling all student-facing and evaluation logic.
 
 ## Key Statuses & Transitions
 
-### Student Status Flow
+### Student Status Flow (CDS/CDA/CDE)
 ```
-Registered → PasswordCreated → CourseSelected → TeamPreferenceSubmitted
-→ TeamIDGiven → CapStoneProjectsAssigned → ClientProjectAssigned
+Registered → TeamIDGiven → CapStoneProjectsAssigned → ReadyForClientPick
+→ ClientProjectAssigned → AllCompleted
 ```
+
+### Student Status Flow (AIE Two-Phase)
+```
+Registered → TeamIDGiven → CapStoneProjectsAssigned → CDSCycleComplete
+→ AIECapstoneAssigned → AIEReadyForClientPick → AIEClientAssigned → AllCompleted
+```
+
+### Other Statuses
+- `LegacyArchived` — Archived students from older batches
 
 ### TeamProject Status Flow
 ```
@@ -171,6 +188,6 @@ Created (on submission) → reviewed=False → Trainer marks reviewed=True
 
 | Job | Trigger | What it does |
 |-----|---------|--------------|
-| **send_pending_evaluation_emails** | Every 12h + cron 00:00/12:00 | Finds `reviewed=True, email_sent=False, visibility_after <= now`, sends email, sets `email_sent=True`, updates TeamProject to `evaluated` |
-| **sync_ready_for_client_pick** | Every 6h | Checks if students completed all capstone projects, transitions them to `ReadyForClientPick` status |
-| **import_students_from_sheets** | Daily 02:00 UTC | Pulls new student registrations from Google Sheets |
+| **send_pending_evaluation_emails** | Every 12h (APScheduler) + cron 00:00/12:00 | Finds `reviewed=True, email_sent=False, visibility_after <= now`, sends email, sets `email_sent=True`, updates TeamProject to `evaluated` |
+| **sync_ready_for_client_pick** | Every 6h (APScheduler) | Checks if students completed all capstone projects, transitions them to `ReadyForClientPick` status |
+| **import_students_from_sheets** | Management command only (not in APScheduler) | Pulls new student registrations from Google Sheets |

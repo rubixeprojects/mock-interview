@@ -39,7 +39,7 @@ cd /home/ubuntu/InternshipPortal
 
 ## Tech Stack
 
-- **Backend:** Django 4.2 / Python 3.12
+- **Backend:** Django 6.0.1 / Python 3.12
 - **Database:** MySQL 8 (AWS RDS)
 - **Storage:** AWS S3
 - **Cache:** Redis
