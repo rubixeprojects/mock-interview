@@ -1,0 +1,350 @@
+{% extends "Submissions/base.html" %}
+{% load custom_filters %}
+{% block title %}Submit Projects | Internship Portal{% endblock %}
+{% block nav_submit_active %}active{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Submit Projects</h1>
+<p class="page-subtitle">
+  Select a project and upload your files. Duplicate submissions are blocked per <b>Team + Project</b>.
+</p>
+
+{% if messages %}
+  <div class="card">
+    {% for message in messages %}
+      {% if message.tags == 'error' %}
+        <div class="banner warn" style="border-left: 4px solid #d32f2f; background-color: #ffebee;">
+          <strong></strong> {{ message }}
+        </div>
+      {% elif message.tags == 'success' %}
+        <div class="banner success" style="border-left: 4px solid #388e3c; background-color: #e8f5e9;">
+          <strong>✅ Success:</strong> {{ message }}
+        </div>
+      {% elif message.tags == 'warning' %}
+        <div class="banner warn">
+          <strong>⚠️ Warning:</strong> {{ message }}
+        </div>
+      {% else %}
+        <div class="banner">
+          {{ message }}
+        </div>
+      {% endif %}
+      {% if not forloop.last %}<div style="height:10px;"></div>{% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Doubt Clearing Sessions — course-specific -->
+<div class="card" style="margin-bottom: 20px; border-left: 4px solid #2d8cff;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+    <span style="font-size:20px;">🎯</span>
+    <h2 style="margin:0; font-size:16px; font-weight:600; color:#1a1a1a;">Doubt Clearing Sessions</h2>
+  </div>
+
+  {% if course == "AIE" %}
+    <p style="margin:0 0 12px; font-size:14px; color:#444; line-height:1.6;">
+      Kindly find the doubt-clearing session for AI, scheduled every <strong>Monday from 3:00 PM to 4:00 PM</strong>.
+    </p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 16px; font-size:14px; color:#1a1a1a;">
+        <span style="font-weight:600; color:#5c6bc0;">Monday</span> &nbsp; 3:00 PM – 4:00 PM
+      </div>
+    </div>
+
+  {% elif course == "CDA" %}
+    <p style="margin:0 0 12px; font-size:14px; color:#444; line-height:1.6;">
+      Kindly find the schedule for the doubt-clearing sessions below. You may join to clarify your technical queries with the trainer.
+    </p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:8px; margin-bottom:14px;">
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Saturday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">2:00 PM – 3:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Monday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">3:00 PM – 4:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Tuesday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">4:00 PM – 5:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Wednesday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">5:00 PM – 6:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Thursday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">7:00 PM – 8:00 PM</div>
+      </div>
+    </div>
+
+  {% elif course == "CDE" %}
+    <p style="margin:0 0 12px; font-size:14px; color:#444; line-height:1.6;">
+      Kindly find the doubt-clearing session for CDE, scheduled every <strong>Monday from 3:00 PM to 4:00 PM</strong>.
+    </p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 16px; font-size:14px; color:#1a1a1a;">
+        <span style="font-weight:600; color:#5c6bc0;">Monday</span> &nbsp; 3:00 PM – 4:00 PM
+      </div>
+    </div>
+
+  {% elif course == "CDS" %}
+    <p style="margin:0 0 12px; font-size:14px; color:#444; line-height:1.6;">
+      Kindly find the schedule for the doubt-clearing sessions below. You may join to clarify your technical queries with the trainer.
+    </p>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:8px; margin-bottom:14px;">
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Saturday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">2:00 PM – 3:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Monday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">3:00 PM – 4:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Tuesday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">4:00 PM – 5:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Wednesday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">5:00 PM – 6:00 PM</div>
+      </div>
+      <div style="background:#f0f4ff; border-radius:8px; padding:10px 14px;">
+        <div style="font-size:11px; font-weight:600; color:#5c6bc0; text-transform:uppercase; letter-spacing:0.5px;">Thursday</div>
+        <div style="font-size:13px; color:#1a1a1a; margin-top:3px;">7:00 PM – 8:00 PM</div>
+      </div>
+    </div>
+  {% endif %}
+
+  <a href="https://us02web.zoom.us/j/86423418853"
+     target="_blank" rel="noopener noreferrer"
+     style="display:inline-flex; align-items:center; gap:8px; background:#2d8cff; color:#fff; text-decoration:none; padding:9px 18px; border-radius:6px; font-size:14px; font-weight:500;">
+    <span style="font-size:15px;">📹</span> Join Zoom Session
+  </a>
+</div>
+
+<div class="card">
+  <div class="kv">
+    <div class="k">Student Name</div>
+    <div class="v">{{ student_name }}</div>
+
+    <div class="k">Course</div>
+    <div class="v">{{ course }}</div>
+
+    <div class="k">Team ID</div>
+    <div class="v">{{ team_id }}</div>
+  </div>
+
+  <div style="height:16px;"></div>
+
+  <form method="post" enctype="multipart/form-data" id="submit_form">
+    {% csrf_token %}
+
+    <div class="grid">
+      <div>
+        <label for="pending_project">Project</label>
+        <select id="pending_project" name="project_id" required>
+          <option value="">-- Select project --</option>
+          {% for tp in projects %}
+            <option
+              value="{{ tp.project.project_id }}"
+              data-schema='{{ tp.project.submission_schema_json|safe }}'>
+              {{ tp.project.project_id }} - {{ tp.project.project_name }}
+            </option>
+          {% endfor %}
+          {% for s in submitted_list %}
+            <option disabled value="">
+              {{ s.project_id }} - {{ s.project_name }} (already {{ s.status }})
+            </option>
+          {% endfor %}
+          {% if not projects and not submitted_list %}
+            <option disabled>No projects available</option>
+          {% endif %}
+        </select>
+
+        <div class="hint">Projects are loaded from the Project Registry.</div>
+      </div>
+
+      <div id="track_container" style="display: none;">
+        <label for="track_select">Submission Track</label>
+        <select id="track_select" name="track">
+          <option value="">-- Select track --</option>
+        </select>
+
+        <div class="hint">Some projects support multiple submission tracks. Select the one that matches your approach.</div>
+      </div>
+
+      <div>
+        <label for="submission_format">Expected Submission Format</label>
+        <textarea id="submission_format" readonly>Select a project to see the expected format.</textarea>
+      </div>
+
+      <div style="grid-column: 1 / -1;">
+        <label for="files">Upload Files</label>
+        <input id="files" name="submission_files" type="file" multiple required />
+        <div class="hint">
+          Upload the submission files in expected submission format only.
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px;"></div>
+
+    <div class="row">
+      <button class="btn" type="submit" id="submit_btn">Submit</button>
+    </div>
+  </form>
+</div>
+
+<!-- Validation Loading Modal -->
+<div id="validation_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:white; padding:40px; border-radius:8px; text-align:center; box-shadow:0 4px 6px rgba(0,0,0,0.1); max-width:400px;">
+    <div style="font-size:24px; margin-bottom:16px;">⏳</div>
+    <h2 style="margin:0 0 10px; font-size:18px;">Please Wait...</h2>
+    <p style="margin:0; color:#666; font-size:14px;">Validating your submission files...</p>
+    <p style="margin:8px 0 0; color:#999; font-size:12px;">This may take a few moments.</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2 style="margin:0 0 10px;">Submitted Projects (so far)</h2>
+
+  {% if submitted_list %}
+    {% for s in submitted_list %}
+      <div class="kv" style="margin-bottom:12px;">
+        <div class="k">Project</div>
+        <div class="v">{{ s.project_id }} - {{ s.project_name }}</div>
+
+        <div class="k">Submitted At</div>
+        <div class="v">{{ s.updated_at|to_ist }}</div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="banner">
+      No submissions yet.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const pending = document.getElementById("pending_project");
+  const trackContainer = document.getElementById("track_container");
+  const trackSelect = document.getElementById("track_select");
+  const format = document.getElementById("submission_format");
+  const fileInput = document.getElementById("files");
+  const submitForm = document.getElementById("submit_form");
+  const submitBtn = document.getElementById("submit_btn");
+  const validationModal = document.getElementById("validation_modal");
+
+  function updateTrackDropdown(schema) {
+    // Clear existing options
+    trackSelect.innerHTML = '<option value="">-- Select track --</option>';
+
+    if (schema && schema.tracks && typeof schema.tracks === 'object') {
+      // Tracks exist - populate dropdown
+      trackContainer.style.display = "block";
+      trackSelect.required = true;
+
+      for (const [trackKey, trackData] of Object.entries(schema.tracks)) {
+        const option = document.createElement("option");
+        option.value = trackKey;
+        option.textContent = trackData.label || trackKey;
+        trackSelect.appendChild(option);
+      }
+    } else {
+      // No tracks - hide dropdown
+      trackContainer.style.display = "none";
+      trackSelect.required = false;
+      trackSelect.value = "";
+    }
+  }
+
+  function updateFormatDescription(schema) {
+    if (!schema) {
+      format.value = "Select a project to see the expected format.";
+      fileInput.accept = "";
+      return;
+    }
+
+    const selectedTrack = trackSelect.value;
+
+    let description = schema.description || "Submission format will be provided.";
+    let extensions = schema.allowed_extensions || [];
+
+    // If tracks exist and a track is selected, use track-specific description
+    if (schema.tracks && selectedTrack && schema.tracks[selectedTrack]) {
+      description = schema.tracks[selectedTrack].description || description;
+      const trackSchema = schema.tracks[selectedTrack].zip_schema;
+      if (trackSchema) {
+        extensions = trackSchema.required_files ? [...trackSchema.required_files, ...(trackSchema.optional_files || [])] : [];
+      }
+    }
+
+    format.value = description;
+
+    if (extensions && Array.isArray(extensions) && extensions.length > 0) {
+      fileInput.accept = extensions.join(",");
+    } else if (schema.allowed_extensions && Array.isArray(schema.allowed_extensions)) {
+      fileInput.accept = schema.allowed_extensions.join(",");
+    } else if (schema.submission_type === "ipynb") {
+      fileInput.accept = ".ipynb";
+    } else {
+      fileInput.accept = "";
+    }
+  }
+
+  pending.addEventListener("change", function () {
+    const selected = pending.options[pending.selectedIndex];
+    const rawSchema = selected.getAttribute("data-schema");
+
+    if (!rawSchema) {
+      format.value = "Select a project to see the expected format.";
+      fileInput.accept = "";
+      trackContainer.style.display = "none";
+      trackSelect.required = false;
+      return;
+    }
+
+    try {
+      const schema = JSON.parse(rawSchema);
+      updateTrackDropdown(schema);
+      updateFormatDescription(schema);
+    } catch (err) {
+      format.value = "Submission format not configured correctly.";
+      fileInput.accept = "";
+      trackContainer.style.display = "none";
+    }
+  });
+
+  trackSelect.addEventListener("change", function () {
+    const selected = pending.options[pending.selectedIndex];
+    const rawSchema = selected.getAttribute("data-schema");
+
+    if (rawSchema) {
+      try {
+        const schema = JSON.parse(rawSchema);
+        updateFormatDescription(schema);
+      } catch (err) {
+        console.error("Error parsing schema:", err);
+      }
+    }
+  });
+
+  submitForm.addEventListener("submit", function (e) {
+    // Show validation modal and disable submit button
+    validationModal.style.display = "flex";
+    submitBtn.disabled = true;
+  });
+
+  // Hide modal on page load (in case validation failed and page redirected)
+  window.addEventListener("load", function () {
+    validationModal.style.display = "none";
+    submitBtn.disabled = false;
+  });
+})();
+</script>
+{% endblock %}
+

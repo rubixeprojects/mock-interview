@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables / Secrets
+.env
+*.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+logs/
+
+# Byte-compiled / cached
+*.pyc
+__pycache__/
+
+# PEM / Keys
+*.pem
+*.key
+
+# Temp / Debug scripts
+/tmp/
+*.log
+nohup.out

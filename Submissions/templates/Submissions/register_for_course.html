@@ -1,0 +1,71 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Register for Another Course{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Register for Another Course</h1>
+<p class="page-subtitle">Expand your learning by registering for an additional course.</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card">
+  {% if available_courses %}
+    <form method="post" id="register-course-form">
+      {% csrf_token %}
+
+      <div style="margin-bottom: 20px;">
+        <label for="course_select">Select a Course <span style="color: red;">*</span></label>
+        <select id="course_select" name="course" required>
+          <option value="">-- Select a Course --</option>
+          {% for course in available_courses %}
+            <option value="{{ course.code }}">
+              {{ course.code }} - {{ course.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="hint">Choose a course you're not already enrolled in.</div>
+      </div>
+
+      {% if enrolled_courses %}
+      <div style="margin-bottom: 20px; padding: 12px; background-color: #e8f5e9; border-radius: 12px; border-left: 4px solid #388e3c;">
+        <strong>Already Enrolled In:</strong>
+        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+          {% for course_code in enrolled_courses %}
+            <span style="background: #fff; border: 1px solid #388e3c; color: #388e3c; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 13px;">
+              {{ course_code }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn" type="submit">Register & Continue</button>
+        <a class="btn secondary" href="{% url 'home' %}">Back to Home</a>
+      </div>
+    </form>
+  {% else %}
+    <div style="padding: 20px; text-align: center; background-color: #f5f5f5; border-radius: 12px;">
+      <p style="color: #666; margin: 0;">You are already enrolled in all available courses!</p>
+      <div style="margin-top: 16px;">
+        <a class="btn" href="{% url 'home' %}">Back to Home</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+  #register-course-form select {
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    background: #fff;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,73 @@
+{% extends "Submissions/admin/base_admin.html" %}
+
+{% block title %}Projects{% endblock %}
+{% block nav_projects_active %}active{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Project Registry</h1>
+  <p class="page-subtitle">All capstone and client projects</p>
+
+  <div class="search-bar">
+    <form method="GET" style="display:flex; gap:10px; flex:1;">
+      <input type="text" name="q" placeholder="Search by project ID, name, course..." value="{{ search_query }}" style="flex:1;">
+      <select name="course">
+        <option value="">All Courses</option>
+        {% for course in courses %}
+          <option value="{{ course }}" {% if course == course_filter %}selected{% endif %}>{{ course }}</option>
+        {% endfor %}
+      </select>
+      <select name="type">
+        <option value="">All Types</option>
+        <option value="Capstone" {% if type_filter == "Capstone" %}selected{% endif %}>Capstone</option>
+        <option value="Client" {% if type_filter == "Client" %}selected{% endif %}>Client</option>
+      </select>
+      <button type="submit" style="padding:10px 20px; background:var(--blue-700); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer;">Search</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Project ID</th>
+          <th>Project Name</th>
+          <th>Course</th>
+          <th>Type</th>
+          <th>Assigned</th>
+          <th>Submitted</th>
+          <th>Doc</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr>
+          <td><strong>{{ project.project_id }}</strong></td>
+          <td>{{ project.project_name }}</td>
+          <td><span class="badge info">{{ project.course }}</span></td>
+          <td>
+            {% if project.project_type == "Capstone" %}
+              <span class="badge" style="background:rgba(147,51,234,.14); color:#9333ea;">Capstone</span>
+            {% else %}
+              <span class="badge" style="background:rgba(236,72,153,.14); color:#ec4899;">Client</span>
+            {% endif %}
+          </td>
+          <td>{{ project.assigned_count }}</td>
+          <td><strong>{{ project.submission_count }}</strong></td>
+          <td style="text-align:center; padding:8px !important;">
+            {% if project.project_document %}
+              <a href="/media/{{ project.project_document.name }}" download title="Download project document" style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:4px; color:#374151; text-decoration:none; font-size:14px; transition:all 0.2s;" onmouseover="this.style.background='#e5e7eb'; this.style.color='#1f2937';" onmouseout="this.style.background='#f3f4f6'; this.style.color='#374151';">📄</a>
+            {% else %}
+              <span style="color:#d1d5db; font-size:14px;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center; color:var(--text-500);">No projects found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+

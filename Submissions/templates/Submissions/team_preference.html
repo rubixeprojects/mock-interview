@@ -1,0 +1,324 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Team Preference{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Team Preference</h1>
+<p class="page-subtitle">Choose how you'd like to form your team.</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card">
+  <form method="post" id="team-preference-form">
+    {% csrf_token %}
+
+    <!-- Option 1: Individual -->
+    <div class="preference-option">
+      <input type="radio" id="preference_individual" name="team_preference" value="individual" required onchange="toggleTeamSection()">
+      <label for="preference_individual" class="preference-label">
+        <strong>Individual</strong>
+        <span class="hint">Work alone as a single-person team</span>
+      </label>
+    </div>
+
+    <!-- Option 2: I have a team (DISABLED FOR NOW - NOT IN FUNCTION) -->
+    <!-- <div class="preference-option">
+      <input type="radio" id="preference_i_have_team" name="team_preference" value="i_have_team" required onchange="toggleTeamSection()">
+      <label for="preference_i_have_team" class="preference-label">
+        <strong>I have a team</strong>
+        <span class="hint">Add your teammate emails (max 3 people for a 4-person team)</span>
+      </label>
+    </div> -->
+
+    <!-- Option 3: Assign a team -->
+    <div class="preference-option">
+      <input type="radio" id="preference_assign_team" name="team_preference" value="assign_team" required onchange="toggleTeamSection()">
+      <label for="preference_assign_team" class="preference-label">
+        <strong>Assign a team</strong>
+        <span class="hint">Let the system automatically assign you to a team</span>
+      </label>
+    </div>
+
+    <!-- Conditional section: Show for "I have a team" option (DISABLED FOR NOW - NOT IN FUNCTION) -->
+    <!-- <div id="team-emails-section" style="display: none; margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 4px;">
+      <h3 style="margin-top: 0;">Add Teammates</h3>
+      <p>Enter the emails of your teammates (maximum 3). All teammates must be registered and belong to the same course.</p>
+
+      <div class="form-group">
+        <label for="team_count">Team Size <span style="color: red;">*</span></label>
+        <select id="team_count" name="team_count">
+          <option value="">-- Select Team Size --</option>
+          <option value="2">2 people</option>
+          <option value="3">3 people</option>
+          <option value="4">4 people</option>
+        </select>
+        <div class="hint">Total including yourself</div>
+      </div>
+
+      <!-- Email inputs container -->
+      <div id="email-inputs-container" style="margin-top: 15px;">
+        <!-- Email inputs will be generated here by JavaScript -->
+      </div>
+    </div> -->
+
+    <div class="row" style="margin-top: 20px;">
+      <button class="btn" type="submit">Submit Team Preference</button>
+      <a class="btn secondary" href="{% url 'home' %}">Back</a>
+    </div>
+  </form>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmation-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
+  <div style="background: white; border-radius: 12px; padding: 32px; max-width: 500px; box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);">
+    <h2 style="margin-top: 0; color: #0f172a; text-align: center;">Confirm Your Team Preference</h2>
+    
+    <div id="confirmation-content" style="margin: 24px 0; padding: 16px; background-color: #f9f9f9; border-radius: 8px;">
+      <!-- Content will be filled by JavaScript -->
+    </div>
+    
+    <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 24px;">
+      Please review your selection before confirming.
+    </p>
+    
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <button type="button" onclick="closeModal()" style="padding: 10px 24px; background-color: #e2e8f0; color: #0f172a; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        ✏️ Edit
+      </button>
+      <button type="button" id="confirm-btn" style="padding: 10px 24px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+        ✅ Confirm & Submit
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .preference-option {
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 2px solid #e2e8f0;
+    border-radius: 4px;
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preference-option:hover {
+    border-color: #007bff;
+    background-color: #f9f9f9;
+  }
+
+  .preference-option input[type="radio"] {
+    margin-right: 12px;
+    margin-top: 2px;
+    cursor: pointer;
+  }
+
+  .preference-label {
+    flex: 1;
+    cursor: pointer;
+  }
+
+  .preference-label strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .preference-label .hint {
+    display: block;
+    font-size: 14px;
+    color: #666;
+    margin-top: 2px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+
+  .hint {
+    font-size: 13px;
+    color: #666;
+    margin-top: 4px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+</style>
+
+<script>
+  function toggleTeamSection() {
+    const preference = document.querySelector('input[name="team_preference"]:checked').value;
+    const section = document.getElementById('team-emails-section');
+    const emailInputs = document.getElementById('email-inputs-container');
+
+    // DISABLED FOR NOW: I have a team option
+    // if (preference === 'i_have_team') {
+    //   section.style.display = 'block';
+    // } else {
+      section.style.display = 'none';
+      emailInputs.innerHTML = '';
+      if (document.getElementById('team_count')) {
+        document.getElementById('team_count').value = '';
+      }
+    // }
+  }
+
+  document.getElementById('team_count').addEventListener('change', function() {
+    const teamSize = parseInt(this.value) || 0;
+    const emailInputsContainer = document.getElementById('email-inputs-container');
+    const numTeammates = teamSize - 1; // Exclude self
+
+    // Clear existing inputs
+    emailInputsContainer.innerHTML = '';
+
+    // Create input fields for each teammate
+    for (let i = 1; i <= numTeammates; i++) {
+      const formGroup = document.createElement('div');
+      formGroup.className = 'form-group';
+
+      const label = document.createElement('label');
+      label.htmlFor = `teammate_email_${i}`;
+      label.innerHTML = `Teammate ${i} Email <span style="color: red;">*</span>`;
+
+      const input = document.createElement('input');
+      input.type = 'email';
+      input.id = `teammate_email_${i}`;
+      input.name = `teammate_emails`;
+      input.placeholder = `teammate${i}@example.com`;
+      input.required = true;
+
+      formGroup.appendChild(label);
+      formGroup.appendChild(input);
+      emailInputsContainer.appendChild(formGroup);
+    }
+  });
+
+  // Form submission handler
+  document.getElementById('team-preference-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const preference = document.querySelector('input[name="team_preference"]:checked').value;
+    let confirmationHTML = '';
+    let emails = [];
+
+    if (preference === 'i_have_team') {
+      const teamSize = document.getElementById('team_count').value;
+      if (!teamSize) {
+        alert('Please select a team size');
+        return;
+      }
+
+      const emailInputs = document.querySelectorAll('input[name="teammate_emails"]');
+      emailInputs.forEach(input => {
+        if (input.value.trim()) {
+          emails.push(input.value.trim());
+        }
+      });
+
+      if (emails.length === 0) {
+        alert('Please enter at least one teammate email');
+        return;
+      }
+
+      // DISABLED FOR NOW: I have a team option - NOT IN FUNCTION
+      // confirmationHTML = `
+      //   <p style="margin: 0 0 12px 0; color: #0f172a;"><strong>Your Selection: I Have a Team</strong></p>
+      //   <p style="margin: 0 0 8px 0; color: #64748b; font-size: 14px;">Team Members (including you):</p>
+      //   <ul style="margin: 0 0 12px 0; padding-left: 20px; color: #64748b;">
+      //     <li>You (your email)</li>
+      //     ${emails.map(email => `<li>${email}</li>`).join('')}
+      //   </ul>
+      //   <p style="margin: 0; color: #ef4444; font-size: 13px; background-color: #fee2e2; padding: 8px; border-radius: 4px;">
+      //     ⚠️ All teammates must register to the portal and be enrolled in your course.
+      //   </p>
+      // `;
+      //
+      // // Store emails for form submission
+      // document.getElementById('team-preference-form').dataset.emails = JSON.stringify(emails);
+
+    } else if (preference === 'individual') {
+      confirmationHTML = `
+        <p style="margin: 0 0 12px 0; color: #0f172a;"><strong>Your Selection: Individual Team</strong></p>
+        <p style="color: #64748b; font-size: 14px; margin: 0;">
+          You will form a 1-person team and work alone. You'll receive a Team ID shortly.
+        </p>
+      `;
+    } else if (preference === 'assign_team') {
+      confirmationHTML = `
+        <p style="margin: 0 0 12px 0; color: #0f172a;"><strong>Your Selection: Let System Assign</strong></p>
+        <p style="color: #64748b; font-size: 14px; margin: 0;">
+          The system will automatically form teams of 4 students. You'll be assigned with other students in your course.
+        </p>
+      `;
+    }
+
+    // Show modal
+    document.getElementById('confirmation-content').innerHTML = confirmationHTML;
+    document.getElementById('confirmation-modal').style.display = 'flex';
+  });
+
+  function closeModal() {
+    document.getElementById('confirmation-modal').style.display = 'none';
+  }
+
+  document.getElementById('confirm-btn').addEventListener('click', function() {
+    const form = document.getElementById('team-preference-form');
+    const preference = document.querySelector('input[name="team_preference"]:checked').value;
+
+    // DISABLED FOR NOW: I have a team option - NOT IN FUNCTION
+    // if (preference === 'i_have_team') {
+    //   const emails = JSON.parse(form.dataset.emails || '[]');
+    //   
+    //   // Create hidden input for emails (JSON array)
+    //   const emailsInput = document.createElement('input');
+    //   emailsInput.type = 'hidden';
+    //   emailsInput.name = 'preference_emails';
+    //   emailsInput.value = JSON.stringify(emails);
+    //   form.appendChild(emailsInput);
+    // }
+
+    // Now submit the form
+    form.style.pointerEvents = 'none';
+    form.style.opacity = '0.6';
+    form.submit();
+  });
+
+  // Close modal when clicking outside
+  document.getElementById('confirmation-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeModal();
+    }
+  });
+</script>
+{% endblock %}

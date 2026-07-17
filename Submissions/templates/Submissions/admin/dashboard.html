@@ -1,0 +1,89 @@
+{% extends "Submissions/admin/base_admin.html" %}
+{% load custom_filters %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block nav_dashboard_active %}active{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">Overview of portal activity and statistics</p>
+
+  <div class="grid">
+    <div class="stat-card">
+      <div class="stat-label">Total Students</div>
+      <div class="stat-value">{{ stats.total_students }}</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Teams</div>
+      <div class="stat-value">{{ stats.total_teams }}</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Submissions</div>
+      <div class="stat-value">{{ stats.total_submissions }}</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Pending Evaluations</div>
+      <div class="stat-value" style="color:#f59e0b;">{{ stats.pending_evaluations }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 16px; font-size:22px;">Recent Submissions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Project</th>
+          <th>Student</th>
+          <th>Submitted</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in recent_submissions %}
+        <tr>
+          <td>{{ sub.team_project.team.team_id }}</td>
+          <td>{{ sub.team_project.project.project_name }}</td>
+          <td>{{ sub.student.identity.name }}</td>
+          <td>{{ sub.created_at|to_ist }}</td>
+          <td>
+            {% if sub.evaluation_email_sent %}
+              <span class="badge success">Evaluated</span>
+            {% else %}
+              <span class="badge warning">Submitted</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center; color:var(--text-500);">No submissions yet</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 16px; font-size:22px;">Course Breakdown</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Course</th>
+          <th>Students</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for stat in course_stats %}
+        <tr>
+          <td><span class="badge info">{{ stat.course }}</span></td>
+          <td><strong>{{ stat.count }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+

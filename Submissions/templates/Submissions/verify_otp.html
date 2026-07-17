@@ -1,0 +1,78 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Verify OTP{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Verify OTP</h1>
+<p class="page-subtitle">Enter the OTP sent to your email address.</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card">
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" value="{{ email }}" disabled style="background-color: #f0f0f0; cursor: not-allowed;">
+    </div>
+
+    <div class="form-group">
+      <label for="otp_code">OTP Code:</label>
+      <input type="text" id="otp_code" name="otp_code" required placeholder="Enter 6-digit OTP" maxlength="6" autofocus>
+      <small>Check your email for the OTP (valid for 10 minutes)</small>
+    </div>
+
+    <div class="row" style="margin-top: 20px;">
+      <button type="submit" class="btn primary">Verify OTP</button>
+      <a class="btn secondary" href="{% url 'forgot_password' %}">Back</a>
+    </div>
+  </form>
+
+  <div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 20px; text-align: center;">
+    <p style="margin: 0 0 10px 0; font-size: 14px;">Didn't receive the OTP?</p>
+    <form method="post" action="{% url 'resend_otp' %}" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn secondary" style="font-size: 14px;">Resend OTP</button>
+    </form>
+    <small style="display: block; color: #666; margin-top: 8px;">Max 3 resend attempts allowed</small>
+  </div>
+</div>
+
+<style>
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .form-group small {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+</style>
+{% endblock %}

@@ -1,0 +1,177 @@
+{% extends "Submissions/base.html" %}
+
+{# ---------------- NAV ACTIVE STATE ---------------- #}
+{% block nav_pick_active %}active{% endblock %}
+
+{# ---------------- PAGE TITLE ---------------- #}
+{% block title %}Pick Projects{% endblock %}
+
+{# ---------------- MAIN CONTENT ---------------- #}
+{% block content %}
+
+<h1 class="page-title">Pick Projects</h1>
+<p class="page-subtitle">
+  Select the required Capstone projects first. Once you have selected all {{ required_capstones }} capstone project(s) and submitted them for evaluation, the Client project section will unlock.
+</p>
+
+<!-- TEAM INFO -->
+<div class="card">
+  <div class="kv">
+    <div class="k">Team ID</div>
+    <div class="v">{{ team.team_id }}</div>
+
+    <div class="k">Course</div>
+    <div class="v">{{ course }}</div>
+
+    <div class="k">Members</div>
+    <div class="v">
+      <ul style="margin:0; padding-left:18px;">
+        {% for s in members %}
+          <li>{{ s.identity.name }} — {{ s.identity.email }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ERRORS -->
+{% if errors %}
+  <div class="banner warn" style="margin-top:16px;">
+    <ul style="margin:0; padding-left:18px;">
+      {% for e in errors %}
+        <li>{{ e }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<!-- CAPSTONE SELECTION -->
+<div class="card">
+  <h3>Capstone Projects</h3>
+  <p class="hint">
+    Required: <b>{{ required_capstones }}</b> |
+    Selected: <b>{{ capstone_total }}</b> |
+    Evaluated: <b>{{ capstone_evaluated }}</b>
+  </p>
+
+  {% if capstones_locked %}
+    <div class="pillbox">
+      {% for p in capstone_projects %}
+        {% if p.project_id in capstone_selected_ids %}
+          {% if p.project_document %}
+            <a href="/media/{{ p.project_document.name }}" download class="pill" title="Download Problem Statement">{{ p.project_name }}</a>
+          {% else %}
+            <div class="pill">{{ p.project_name }}</div>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <p class="hint">Capstone selection is locked. Click a project to download its problem statement.</p>
+  {% else %}
+    {% if capstone_selected_ids %}
+      <div class="banner warn" style="margin-bottom:10px;">
+        You have {{ capstone_total }} of {{ required_capstones }} capstone projects selected. Your previously selected projects are locked — please pick the remaining one(s) from the list below.
+      </div>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="save_capstones">
+
+      <div class="scrollbox">
+        {% for p in capstone_projects %}
+          {% if p.project_id in capstone_selected_ids %}
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; padding:6px 8px; border:1px solid #cde; border-radius:4px; background:#f0f7ff;">
+              <label style="margin:0; display:flex; align-items:center; gap:8px; flex:1; color:#555;">
+                <input type="checkbox" name="capstone_ids" value="{{ p.project_id }}" checked disabled style="flex-shrink:0;">
+                <input type="hidden" name="capstone_ids" value="{{ p.project_id }}">
+                <span>{{ p.project_name }} ({{ p.project_id }}) — already selected</span>
+              </label>
+              {% if p.project_document %}
+                <a href="/media/{{ p.project_document.name }}" download class="btn-small" style="padding:3px 8px; font-size:11px; background:#0066cc; color:white; text-decoration:none; border-radius:3px; white-space:nowrap; display:flex; align-items:center; justify-content:center; text-align:center;">
+                  📄 Download Spec
+                </a>
+              {% endif %}
+            </div>
+          {% else %}
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; padding:6px 8px; border:1px solid #eee; border-radius:4px;">
+              <label style="margin:0; display:flex; align-items:center; gap:8px; flex:1;">
+                <input type="checkbox" name="capstone_ids" value="{{ p.project_id }}" style="flex-shrink:0;">
+                <span>{{ p.project_name }} ({{ p.project_id }})</span>
+              </label>
+              {% if p.project_document %}
+                <a href="/media/{{ p.project_document.name }}" download class="btn-small" style="padding:3px 8px; font-size:11px; background:#0066cc; color:white; text-decoration:none; border-radius:3px; white-space:nowrap; display:flex; align-items:center; justify-content:center; text-align:center;">
+                  📄 Download Spec
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% empty %}
+          <p>No Capstone projects configured.</p>
+        {% endfor %}
+      </div>
+
+      <div class="row" style="margin-top:7px;">
+        <button class="btn" type="submit">Save Capstone Selection</button>
+        <a class="btn secondary" href="{% url 'submissions' %}">Back</a>
+      </div>
+    </form>
+  {% endif %}
+</div>
+
+<!-- CLIENT PROJECT -->
+<div class="card">
+  <h3>Client Project</h3>
+
+  {% if not client_unlocked %}
+    <div class="banner warn">
+      Client project is locked. You need to select all {{ required_capstones }} capstone project(s) and submit each one before you can pick a client project. Currently {{ capstone_total }} selected, {{ capstone_evaluated }} submitted/evaluated.
+    </div>
+  {% endif %}
+
+  <div {% if not client_unlocked %}style="opacity:.6; pointer-events:none;"{% endif %}>
+    {% if client_selected_ids %}
+      <div class="pillbox">
+        {% for p in client_projects %}
+          {% if p.project_id in client_selected_ids %}
+            {% if p.project_document %}
+              <a href="/media/{{ p.project_document.name }}" download class="pill" title="Download Problem Statement">{{ p.project_name }}</a>
+            {% else %}
+              <div class="pill">{{ p.project_name }}</div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_client">
+
+        <div class="scrollbox">
+          {% for p in client_projects %}
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; padding:6px 8px; border:1px solid #eee; border-radius:4px;">
+              <label style="margin:0; display:flex; align-items:center; gap:8px; flex:1;">
+                <input type="radio" name="client_ids" value="{{ p.project_id }}" style="flex-shrink:0;">
+                <span>{{ p.project_name }} ({{ p.project_id }})</span>
+              </label>
+              {% if p.project_document %}
+                <a href="/media/{{ p.project_document.name }}" download class="btn-small" style="padding:3px 8px; font-size:11px; background:#0066cc; color:white; text-decoration:none; border-radius:3px; white-space:nowrap; display:flex; align-items:center; justify-content:center; text-align:center;">
+                  📄 Download Spec
+                </a>
+              {% endif %}
+            </div>
+          {% empty %}
+            <p>No Client projects configured.</p>
+          {% endfor %}
+        </div>
+
+        <div class="row" style="margin-top:7px;">
+          <button class="btn" type="submit">Save Client Project</button>
+          <a class="btn secondary" href="{% url 'submissions' %}">Back</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+

@@ -1,0 +1,86 @@
+from django.urls import path, re_path
+from . import views
+from . import admin_views
+from .media_views import serve_media
+from .health import health_check, liveness_probe, readiness_probe
+
+urlpatterns = [
+    # Health check endpoints (for Kubernetes probes)
+    path("health/", health_check, name="health_check"),
+    path("health/live/", liveness_probe, name="liveness_probe"),
+    path("health/ready/", readiness_probe, name="readiness_probe"),
+    
+    # Student Portal URLs
+    path("", views.home, name="home"),
+    path("register/", views.register, name="register"),
+    path("create-password/", views.create_password, name="create_password"),
+    path("verify-password/", views.verify_password, name="verify_password"),
+    path("register-for-course/", views.register_for_course, name="register_for_course"),
+    path("team-preference/", views.team_preference, name="team_preference"),
+    path("team-waiting/", views.team_waiting, name="team_waiting"),
+    path("team-acceptance/", views.handle_team_acceptance, name="handle_team_acceptance"),
+    path("forgot-password/", views.forgot_password, name="forgot_password"),
+    path("verify-otp/", views.verify_otp_page, name="verify_otp_page"),
+    path("resend-otp/", views.resend_otp, name="resend_otp"),
+    path("reset-password/", views.reset_password, name="reset_password"),
+    path("submissions/", views.submissions, name="submissions"),
+    path("reset/", views.reset_session, name="reset_session"),
+    path("pick-projects/", views.pick_projects, name="pick_projects"),
+    path("evaluations/", views.evaluations, name="evaluations"),
+    
+    # Media file downloads
+    re_path(r'^media/(?P<path>.*)$', serve_media, name='serve_media'),
+    
+    # ✅ Custom Admin Portal URLs (completely separate path)
+    path("portal/", admin_views.admin_login, name="admin_login"),
+    path("portal/logout/", admin_views.admin_logout, name="admin_logout"),
+    path("portal/dashboard/", admin_views.admin_dashboard, name="admin_dashboard"),
+    path("portal/students/", admin_views.admin_students, name="admin_students"),
+    path("portal/submissions/", admin_views.admin_submissions, name="admin_submissions"),
+    #path("portal/evaluations/", admin_views.admin_evaluations, name="admin_evaluations"),
+    path("portal/projects/", admin_views.admin_projects, name="admin_projects"),
+    path("portal/change-team-id/", admin_views.admin_change_team_id, name="admin_change_team_id"),
+    path("portal/api/search/", admin_views.admin_search_api, name="admin_search_api"),
+    path("portal/api/reassign-student/", admin_views.admin_reassign_student_to_individual, name="admin_reassign_student"),
+    path("portal/api/whitelist-sync/", admin_views.whitelist_sync_api, name="whitelist_sync_api"),
+    path("portal/api/upload-students-csv/", admin_views.upload_students_csv_api, name="upload_students_csv_api"),
+    path("portal/api/pipeline-stats/", admin_views.pipeline_stats_api, name="pipeline_stats_api"),
+    path("portal/api/student-lookup/", admin_views.student_lookup_api, name="student_lookup_api"),
+    path("portal/api/team-roster/", admin_views.team_roster_api, name="team_roster_api"),
+    path("portal/api/student-update/", admin_views.student_update_api, name="student_update_api"),
+    path("portal/api/team-update/", admin_views.team_update_api, name="team_update_api"),
+    path("portal/api/all-student-emails/", admin_views.all_student_emails_api, name="all_student_emails_api"),
+    path("portal/api/team-formation-preview/", admin_views.team_formation_preview_api, name="team_formation_preview_api"),
+    path("portal/api/team-formation-execute/", admin_views.team_formation_execute_api, name="team_formation_execute_api"),
+    path("portal/api/purge-stale-preferences/", admin_views.purge_stale_preferences_api, name="purge_stale_preferences_api"),
+    path("portal/api/list-csv-logs/", admin_views.list_csv_logs_api, name="list_csv_logs_api"),
+    path("portal/api/undo-csv-upload/", admin_views.undo_csv_upload_api, name="undo_csv_upload_api"),
+    path("portal/api/db-inconsistencies/", admin_views.get_db_inconsistencies_api, name="db_inconsistencies_api"),
+    path("portal/api/resolve-inconsistency/", admin_views.resolve_inconsistency_api, name="resolve_inconsistency_api"),
+    path("portal/api/resend-evaluation-email/", admin_views.resend_evaluation_email_api, name="resend_evaluation_email_api"),
+    path("portal/api/delete-team-pref/", admin_views.delete_team_pref_api, name="delete_team_pref_api"),
+    path("portal/api/delete-enrollment/", admin_views.delete_enrollment_api, name="delete_enrollment_api"),
+    path("portal/api/add-enrollment/", admin_views.add_enrollment_api, name="add_enrollment_api"),
+    path("portal/api/unassigned-students/", admin_views.unassigned_students_api, name="unassigned_students_api"),
+    path("portal/api/admin-create-individual-team/", admin_views.admin_create_individual_team_api, name="admin_create_individual_team_api"),
+    path("portal/api/admin-form-group-team/", admin_views.admin_form_group_team_api, name="admin_form_group_team_api"),
+    path("portal/api/students-table/", admin_views.students_table_api, name="students_table_api"),
+    path("portal/api/bulk-email/", admin_views.bulk_email_api, name="bulk_email_api"),
+    path("portal/api/bulk-status-update/", admin_views.bulk_status_update_api, name="bulk_status_update_api"),
+    path("portal/api/bulk-noc/", admin_views.bulk_noc_api, name="bulk_noc_api"),
+    path("portal/api/bulk-password-reset/", admin_views.bulk_password_reset_api, name="bulk_password_reset_api"),
+    path("portal/api/generate-temp-access/", admin_views.generate_temp_access_api, name="generate_temp_access_api"),
+    path("portal/api/trigger-single-student-email/", admin_views.trigger_single_student_email_api, name="trigger_single_student_email_api"),
+    path("portal/api/export-students/", admin_views.export_students_api, name="export_students_api"),
+    path("portal/api/projects/", admin_views.projects_api, name="projects_api"),
+    path("portal/api/projects/<str:project_id>/", admin_views.projects_api, name="projects_detail_api"),
+    path("portal/api/bulk-assign-project/", admin_views.bulk_assign_project_api, name="bulk_assign_project_api"),
+    path("portal/api/evaluations/", admin_views.evaluations_list_api, name="evaluations_list_api"),
+    path("portal/api/evaluations/<int:evaluation_id>/", admin_views.evaluation_update_api, name="evaluation_update_api"),
+    path("portal/api/evaluations/<int:evaluation_id>/delete/", admin_views.evaluation_delete_api, name="evaluation_delete_api"),
+    path("portal/api/bulk-mark-reviewed/", admin_views.bulk_mark_reviewed_api, name="bulk_mark_reviewed_api"),
+    path("portal/api/trigger-pending-emails/", admin_views.trigger_pending_emails_api, name="trigger_pending_emails_api"),
+    path("portal/api/cron-status/", admin_views.cron_status_api, name="cron_status_api"),
+    path("portal/api/send-adhoc-email/", admin_views.send_adhoc_email_api, name="send_adhoc_email_api"),
+]
+

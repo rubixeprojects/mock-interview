@@ -1,0 +1,66 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Home | Internship Portal{% endblock %}
+{% block nav_home_active %}active{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Home</h1>
+<p class="page-subtitle">
+  Enter your email to continue. If your email is registered, you will be taken to the submission page.
+</p>
+
+{% if messages %}
+  <div class="card">
+    {% for message in messages %}
+      <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% endif %}">
+        {{ message }}
+      </div>
+      {% if not forloop.last %}<div style="height:10px;"></div>{% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="card">
+  <form method="POST" action="{% url 'home' %}">
+    {% csrf_token %}
+
+    <div class="grid">
+      <div style="grid-column: 1 / -1;">
+        <label>Email</label>
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="you@example.com"
+          value="{{ prefill_email|default:'' }}"
+        />
+        <div class="hint">
+          Use the same email that you used while joining the course.
+        </div>
+      </div>
+    </div>
+
+    <div style="height:14px;"></div>
+
+    <div class="row">
+      <button class="btn" type="submit">Continue</button>
+    </div>
+  </form>
+</div>
+
+<!-- Doubt Clearing Sessions — generic (pre-login) -->
+<div class="card" style="margin-top: 24px; border-left: 4px solid #2d8cff;">
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+    <span style="font-size:20px;">🎯</span>
+    <h2 style="margin:0; font-size:16px; font-weight:600; color:#1a1a1a;">Doubt Clearing Sessions</h2>
+  </div>
+  <p style="margin:0 0 14px; font-size:14px; color:#444; line-height:1.6;">
+    Doubt clearing sessions are available for all courses. Log in to see your course-specific schedule.
+  </p>
+  <a href="https://us02web.zoom.us/j/86423418853"
+     target="_blank" rel="noopener noreferrer"
+     style="display:inline-flex; align-items:center; gap:8px; background:#2d8cff; color:#fff; text-decoration:none; padding:9px 18px; border-radius:6px; font-size:14px; font-weight:500;">
+    <span style="font-size:15px;">📹</span> Join Zoom Session
+  </a>
+</div>
+{% endblock %}
+

@@ -1,0 +1,169 @@
+{% extends "Submissions/base.html" %}
+{% load custom_filters %}
+
+{# ---------------- NAV ACTIVE STATE ---------------- #}
+{% block nav_eval_active %}active{% endblock %}
+
+{# ---------------- PAGE TITLE ---------------- #}
+{% block title %}Evaluations{% endblock %}
+
+{# ---------------- EXTRA STYLES ---------------- #}
+{% block extra_head %}
+<style>
+  .eval-report-wrap {
+    margin-top: 16px;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .eval-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    font-size: 0.95em;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+  }
+  .eval-report-header:hover { background: #f1f5f9; }
+  .eval-report-header .chevron { transition: transform 0.2s; font-style: normal; }
+  .eval-report-header.open .chevron { transform: rotate(180deg); }
+  .eval-report-body {
+    display: none;
+    padding: 20px;
+    background: #fff;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.92em;
+    line-height: 1.7;
+    color: #1e293b;
+  }
+  .eval-report-body.visible { display: block; }
+  .grade-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 1em;
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .status-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    font-weight: 600;
+  }
+  .status-assigned  { background:#fef9c3; color:#854d0e; }
+  .status-submitted { background:#dbeafe; color:#1e40af; }
+  .status-evaluated { background:#dcfce7; color:#15803d; }
+</style>
+{% endblock %}
+
+{# ---------------- MAIN CONTENT ---------------- #}
+{% block content %}
+
+<h1 class="page-title">Evaluations</h1>
+<p class="page-subtitle">
+  Submitted projects are evaluated after review. Evaluation reports become visible
+  only when the review process is completed.
+</p>
+
+<!-- TEAM INFO -->
+<div class="card">
+  <div class="kv">
+    <div class="k">Team ID</div>
+    <div class="v">{{ team.team_id }}</div>
+
+    <div class="k">Course</div>
+    <div class="v">{{ course }}</div>
+
+    <div class="k">Status</div>
+    <div class="v">{{ enrollment.status }}</div>
+
+    <div class="k">Capstones Evaluated</div>
+    <div class="v">{{ capstone_eval_count }} / {{ required_capstones }}</div>
+  </div>
+</div>
+
+{% if enrollment.status == "ReadyForClientPick" %}
+  <div class="banner success" style="margin-top:16px;">
+    All Capstone projects have been evaluated.
+    You may now proceed to pick the Client project.
+  </div>
+{% endif %}
+
+<!-- PROJECT CARDS -->
+{% for r in rows %}
+<div class="card" style="margin-top:16px;">
+
+  <!-- Project header row -->
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
+    <div>
+      <span style="font-size:1.05em; font-weight:700;">{{ r.project.project_name }}</span>
+      <span class="hint" style="margin-left:8px;">{{ r.project.project_id }}</span>
+      <span style="margin-left:8px; font-size:0.82em; color:#64748b;">{{ r.project.project_type }}</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      {% if r.email_sent %}
+        <span class="status-pill status-evaluated">✓ Evaluated</span>
+        {% if r.evaluation and r.evaluation.evaluation_grade %}
+          <span class="grade-badge">Grade: {{ r.evaluation.evaluation_grade }}</span>
+        {% endif %}
+      {% elif r.latest_submission %}
+        <span class="status-pill status-submitted">Submitted</span>
+      {% else %}
+        <span class="status-pill status-assigned">Assigned</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Submission info -->
+  <div style="margin-top:10px; font-size:0.88em; color:#64748b;">
+    {% if r.latest_submission %}
+      Submitted: {{ r.latest_submission.created_at|to_ist }}
+    {% else %}
+      No submission yet.
+    {% endif %}
+  </div>
+
+  <!-- Evaluation report — only shown after email is sent -->
+  {% if r.email_sent and r.evaluation_text %}
+    <div class="eval-report-wrap" style="margin-top:14px;">
+      <div class="eval-report-header" onclick="toggleReport(this)">
+        <span>📋 View Evaluation Report</span>
+        <i class="chevron">▼</i>
+      </div>
+      <div class="eval-report-body">{{ r.evaluation_text }}</div>
+    </div>
+  {% elif not r.email_sent %}
+    <div style="margin-top:10px; font-size:0.88em; color:#94a3b8;">
+      Yet to be evaluated.
+    </div>
+  {% endif %}
+
+</div>
+{% empty %}
+  <div class="card" style="margin-top:16px;">
+    No projects assigned yet.
+  </div>
+{% endfor %}
+
+<div class="row" style="margin-top:16px;">
+  <a class="btn secondary" href="{% url 'submissions' %}">Back to Submissions</a>
+</div>
+
+<script>
+function toggleReport(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('visible');
+}
+</script>
+
+{% endblock %}
+

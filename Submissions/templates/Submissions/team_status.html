@@ -1,0 +1,138 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Team Status{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Team Status</h1>
+<p class="page-subtitle">You've successfully joined a team</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card" style="max-width: 700px; margin: 40px auto;">
+  <div style="padding: 40px 20px;">
+    <!-- Success Message -->
+    <div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 20px; border-radius: 8px; margin-bottom: 32px;">
+      <h2 style="color: #065f46; margin: 0; font-size: 20px;">{{ message }}</h2>
+    </div>
+
+    <!-- Team Info -->
+    <div style="background-color: #f0f9ff; border-left: 4px solid #1170ff; padding: 24px; border-radius: 8px; margin-bottom: 32px;">
+      <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b;"><strong>Team Details:</strong></p>
+      <p style="margin: 8px 0; font-size: 16px; color: #0f172a;">
+        Team Lead: <strong>{{ requester_name }}</strong>
+      </p>
+      <p style="margin: 8px 0; font-size: 16px; color: #0f172a;">
+        Course: <strong>{{ course }}</strong>
+      </p>
+    </div>
+
+    <!-- Team Members Status -->
+    <div style="margin-bottom: 32px;">
+      <h3 style="color: #0f172a; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">Team Composition</h3>
+      
+      <!-- Accepted Members -->
+      <div style="margin-bottom: 20px;">
+        <p style="color: #065f46; font-weight: 600; margin: 0 0 12px 0;">Accepted Members ({{ team_members_accepted|length }}):</p>
+        <div style="background-color: #d1fae5; padding: 16px; border-radius: 6px; border-left: 4px solid #10b981;">
+          {% for email in team_members_accepted %}
+            <p style="margin: 6px 0; color: #065f46;">
+              ✓ {{ email }}
+              {% if email == student_email %}<span style="color: #1170ff; font-weight: 600;"> (You)</span>{% endif %}
+            </p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Pending Members -->
+      {% if team_members_pending %}
+        <div style="margin-bottom: 20px;">
+          <p style="color: #92400e; font-weight: 600; margin: 0 0 12px 0;">Waiting For ({{ team_members_pending|length }}):</p>
+          <div style="background-color: #fef3c7; padding: 16px; border-radius: 6px; border-left: 4px solid #f59e0b;">
+            {% for email in team_members_pending %}
+              <p style="margin: 6px 0; color: #92400e;">
+                ⏳ {{ email }}
+              </p>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Declined Members -->
+      {% if team_members_declined %}
+        <div style="margin-bottom: 20px;">
+          <p style="color: #991b1b; font-weight: 600; margin: 0 0 12px 0;">Declined or Gone ({{ team_members_declined|length }}):</p>
+          <div style="background-color: #fee2e2; padding: 16px; border-radius: 6px; border-left: 4px solid #ef4444;">
+            {% for email in team_members_declined %}
+              <p style="margin: 6px 0; color: #991b1b;">
+                ✗ {{ email }}
+              </p>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Info Box -->
+    <div style="background-color: #fef3c7; border: 1px solid #fcd34d; padding: 16px; border-radius: 6px; margin-bottom: 32px;">
+      <p style="color: #92400e; font-size: 14px; margin: 0;">
+        <strong>What's next?</strong> Your team will be assigned a Team ID once all members are finalized. You'll receive an email notification.
+      </p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 12px; justify-content: center;">
+      <a href="{% url 'pick_projects' %}" class="btn" style="padding: 12px 32px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;">
+        Continue to Projects
+      </a>
+      <a href="{% url 'home' %}" class="btn" style="padding: 12px 32px; background-color: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block;">
+        Back to Home
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .banner {
+    margin: 20px 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  
+  .banner.success {
+    background-color: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+  }
+  
+  .banner.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+  }
+  
+  .banner.warn {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    padding: 0;
+  }
+  
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+</style>
+{% endblock %}

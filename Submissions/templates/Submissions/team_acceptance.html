@@ -1,0 +1,123 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Join Team Invitation{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Join Team Invitation</h1>
+<p class="page-subtitle">A teammate has invited you to their team</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card" style="max-width: 700px; margin: 40px auto;">
+  <div style="padding: 40px 20px;">
+    <!-- Invitation Card -->
+    <div style="background-color: #f0f9ff; border-left: 4px solid #1170ff; padding: 24px; margin-bottom: 32px; border-radius: 8px;">
+      <h2 style="color: #0f172a; margin-top: 0; font-size: 24px;">Welcome, {{ name }}!</h2>
+      
+      <p style="color: #64748b; font-size: 16px; line-height: 1.8; margin: 20px 0;">
+        <strong>{{ requester_name }}</strong> ({{ requester_email }}) has selected you as a teammate and wants you to join their team.
+      </p>
+      
+      <div style="background-color: white; border: 1px solid #e2e8f0; padding: 16px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b;"><strong>Team Details:</strong></p>
+        <p style="margin: 8px 0; font-size: 16px; color: #0f172a;">
+          📚 Course: <strong>{{ course }}</strong>
+        </p>
+        <p style="margin: 8px 0; font-size: 16px; color: #0f172a;">
+          👥 Team Size: <strong>{{ team_size }} people</strong>
+        </p>
+      </div>
+
+      <p style="color: #64748b; font-size: 16px; line-height: 1.8; margin: 20px 0;">
+        <strong>What happens next?</strong>
+      </p>
+      
+      <ul style="color: #64748b; font-size: 15px; line-height: 1.8; margin: 20px 0; padding-left: 20px;">
+        <li><strong>If you accept:</strong> You'll be added to {{ requester_name }}'s team. Both of you will wait for remaining team members to register.</li>
+        <li><strong>If you decline:</strong> You can select your own team preference (Individual or Let System Assign).</li>
+      </ul>
+
+      <p style="color: #64748b; font-size: 14px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+        ⏰ <strong>Decision Required:</strong> Please make your choice below.
+      </p>
+    </div>
+
+    <!-- Decision Buttons -->
+    <div style="display: flex; gap: 16px; justify-content: center;">
+      <!-- YES Button -->
+      <form method="post" action="{% url 'handle_team_acceptance' %}" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ email }}">
+        <input type="hidden" name="team_id" value="{{ team_id }}">
+        <input type="hidden" name="response" value="yes">
+        <button type="submit" class="btn" style="background-color: #10b981; color: white; padding: 12px 32px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;">
+          ✅ Yes, Join This Team
+        </button>
+      </form>
+
+      <!-- NO Button -->
+      <form method="post" action="{% url 'handle_team_acceptance' %}" style="display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ email }}">
+        <input type="hidden" name="team_id" value="{{ team_id }}">
+        <input type="hidden" name="response" value="no">
+        <button type="submit" class="btn" style="background-color: #ef4444; color: white; padding: 12px 32px; font-size: 16px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;">
+          ❌ No, Choose My Own Team
+        </button>
+      </form>
+    </div>
+
+    <!-- Info Box -->
+    <div style="background-color: #fef3c7; border: 1px solid #fcd34d; padding: 16px; border-radius: 6px; margin-top: 32px; text-align: center;">
+      <p style="color: #92400e; font-size: 14px; margin: 0;">
+        💡 <strong>Tip:</strong> You can see which teammates have accepted and who's still pending in your team dashboard once you join.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .banner {
+    margin: 20px 0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  
+  .banner.success {
+    background-color: #d1fae5;
+    color: #065f46;
+    border-left: 4px solid #10b981;
+  }
+  
+  .banner.error {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border-left: 4px solid #ef4444;
+  }
+  
+  .banner.warn {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+  }
+  
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    padding: 0;
+  }
+  
+  .btn:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+</style>
+{% endblock %}

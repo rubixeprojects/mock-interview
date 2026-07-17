@@ -1,0 +1,52 @@
+{% extends "Submissions/admin/base_admin.html" %}
+
+{% block title %}Students{% endblock %}
+{% block nav_students_active %}active{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Students</h1>
+  <p class="page-subtitle">Manage student enrollments and team assignments</p>
+
+  <div class="search-bar">
+    <form method="GET" style="display:flex; gap:10px; flex:1;">
+      <input type="text" name="q" placeholder="Search by name, email, team..." value="{{ search_query }}" style="flex:1;">
+      <select name="course">
+        <option value="">All Courses</option>
+        {% for course in courses %}
+          <option value="{{ course }}" {% if course == course_filter %}selected{% endif %}>{{ course }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" style="padding:10px 20px; background:var(--blue-700); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer;">Search</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Course</th>
+          <th>Team ID</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td><strong>{{ student.identity.name }}</strong></td>
+          <td>{{ student.identity.email }}</td>
+          <td><span class="badge info">{{ student.course }}</span></td>
+          <td>{{ student.team.team_id|default:"-" }}</td>
+          <td><span class="badge">{{ student.status }}</span></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center; color:var(--text-500);">No students found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+

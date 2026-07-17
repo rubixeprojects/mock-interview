@@ -1,0 +1,74 @@
+{% extends "Submissions/admin/base_admin.html" %}
+{% load custom_filters %}
+
+{% block title %}Submissions & Evaluations{% endblock %}
+{% block nav_submissions_active %}active{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Submissions & Evaluations</h1>
+  <p class="page-subtitle">Manage project submissions and view evaluation results</p>
+
+  <div class="search-bar">
+    <form method="GET" style="display:flex; gap:10px; flex:1;">
+      <input type="text" name="q" placeholder="Search by team, project, student..." value="{{ search_query }}" style="flex:1;">
+      <select name="course">
+        <option value="">All Courses</option>
+        {% for course in courses %}
+          <option value="{{ course }}" {% if course == course_filter %}selected{% endif %}>{{ course }}</option>
+        {% endfor %}
+      </select>
+      <select name="status">
+        <option value="">All Status</option>
+        <option value="evaluated" {% if status_filter == "evaluated" %}selected{% endif %}>Evaluated</option>
+        <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+      </select>
+      <button type="submit" style="padding:10px 20px; background:var(--blue-700); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer;">Search</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Team ID</th>
+          <th>Project</th>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Submitted</th>
+          <th>Evaluation Status</th>
+          <th>Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in submission_data %}
+        <tr>
+          <td><strong>{{ item.submission.team_project.team.team_id }}</strong></td>
+          <td>{{ item.submission.team_project.project.project_name }}</td>
+          <td>{{ item.submission.student.identity.name }}<br><small style="color:#64748b;">{{ item.submission.student.identity.email }}</small></td>
+          <td><span class="badge info">{{ item.submission.student.course }}</span></td>
+          <td>{{ item.submission.created_at|to_ist }}</td>
+          <td>
+            {% if item.evaluation and item.evaluation.email_sent %}
+              <span class="badge success">Evaluated</span>
+            {% else %}
+              <span class="badge warning">Submitted</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.evaluation and item.evaluation.email_sent and item.evaluation.evaluation_grade %}
+              <strong style="color:var(--blue-700); font-size:16px;">{{ item.evaluation.evaluation_grade }}</strong>
+            {% else %}
+              <span style="color:#94a3b8;">-</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center; color:var(--text-500);">No submissions found</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+

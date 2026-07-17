@@ -1,0 +1,191 @@
+{% extends "Submissions/base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Register</h1>
+<p class="page-subtitle">{% if is_new_user %}Create your account to access the internship portal.{% else %}Confirm your details to continue.{% endif %}</p>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="banner {% if message.tags == 'success' %}success{% elif message.tags == 'warning' %}warn{% elif message.tags == 'error' %}error{% endif %}">
+      {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% if is_new_user %}
+  {# NEW USER REGISTRATION FORM #}
+  <div class="card">
+    <div class="banner">
+      Please provide your details to create an account.
+    </div>
+
+    <form method="post" style="margin-top: 12px;">
+      {% csrf_token %}
+      <input type="hidden" name="email" value="{{ prefill_email }}">
+      <input type="hidden" name="mode" value="new_user">
+
+      <div class="grid">
+        <div>
+          <label>Email</label>
+          <input type="email" value="{{ prefill_email }}" disabled style="background-color: #f0f0f0; cursor: not-allowed;">
+          <div class="hint">Your unique account identifier.</div>
+        </div>
+
+        <div>
+          <label for="name">Name <span style="color: red;">*</span></label>
+          <input type="text" id="name" name="name" value="{{ prefill_name|default:'' }}" required placeholder="Enter your full name">
+          <div class="hint">Your full name as registered.</div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top: 12px;">
+        <div>
+          <label for="phone">Contact Number <span style="color: red;">*</span></label>
+          <input type="tel" id="phone" name="phone" value="{{ prefill_phone|default:'' }}" required placeholder="Enter your contact number">
+          <div class="hint">Phone number for communication.</div>
+        </div>
+
+        <div>
+          <label for="course">Course <span style="color: red;">*</span></label>
+          <select id="course" name="course" required>
+            <option value="">-- Select Course --</option>
+            {% for course in courses %}
+              <option value="{{ course.id }}">{{ course.code }} - {{ course.name }}</option>
+            {% endfor %}
+          </select>
+          <div class="hint">Select your course.</div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top: 12px;">
+        <div>
+          <label for="password">Password <span style="color: red;">*</span></label>
+          <input type="password" id="password" name="password" required placeholder="Enter your password" minlength="6">
+          <div class="hint">Minimum 6 characters.</div>
+        </div>
+
+        <div>
+          <label for="confirm_password">Confirm Password <span style="color: red;">*</span></label>
+          <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm your password">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top: 12px;">
+        <button class="btn" type="submit">Register</button>
+        <a class="btn secondary" href="{% url 'home' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+{% elif not team_exists %}
+  <div class="card">
+    <div class="banner warn">
+      {{ error_message|default:"No team assignment found for your email. Please contact the internship team." }}
+    </div>
+
+    <div class="row" style="margin-top: 12px;">
+      <a class="btn secondary" href="{% url 'home' %}">Back to Home</a>
+    </div>
+  </div>
+
+{% else %}
+
+  {% if multi_enrollments %}
+    <div class="card">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="email" value="{{ prefill_email }}">
+
+        <div class="banner">
+          Multiple enrollments found. Select one to continue.
+        </div>
+
+        <div style="margin-top: 12px;" class="scrollbox">
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:10px; border-bottom:1px solid #e2e8f0;">Course</th>
+                <th style="text-align:left; padding:10px; border-bottom:1px solid #e2e8f0;">Team ID</th>
+                <th style="text-align:left; padding:10px; border-bottom:1px solid #e2e8f0;">Select</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in choices %}
+              <tr>
+                <td style="padding:10px; border-bottom:1px solid #e2e8f0;">{{ c.course }}</td>
+                <td style="padding:10px; border-bottom:1px solid #e2e8f0;">{{ c.team_id }}</td>
+                <td style="padding:10px; border-bottom:1px solid #e2e8f0;">
+                  <input type="radio" name="enrollment_id" value="{{ c.id }}" required>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" style="padding:10px;">No enrollments available.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="row" style="margin-top: 12px;">
+          <button class="btn" type="submit">Continue</button>
+          <a class="btn secondary" href="{% url 'home' %}">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+  {% else %}
+    <div class="card">
+      <div class="banner">
+        Email, name, phone, course and team ID are provided by the internship team and shown as read-only.
+      </div>
+
+      <form method="post" style="margin-top: 12px;">
+        {% csrf_token %}
+
+        {# Only email is required by POST; rest is just display #}
+        <input type="hidden" name="email" value="{{ prefill_email }}">
+
+        <div class="grid">
+          <div>
+            <label>Email</label>
+            <input type="email" value="{{ prefill_email }}" disabled>
+            <div class="hint">Used to identify your account.</div>
+          </div>
+
+          <div>
+            <label>Course</label>
+            <input type="text" value="{{ course }}" disabled>
+            <div class="hint">Derived from Team ID.</div>
+          </div>
+        </div>
+
+        <div class="grid" style="margin-top: 12px;">
+          <div>
+            <label>Team ID</label>
+            <input type="text" value="{{ team_id }}" disabled>
+          </div>
+
+          <div>
+            <label>Phone (if present)</label>
+            <input type="text" value="{% if prefill_phone %}{{ prefill_phone }}{% else %}-{% endif %}" disabled>
+          </div>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label>Name</label>
+          <input type="text" value="{{ prefill_name }}" disabled>
+        </div>
+
+        <div class="row" style="margin-top: 12px;">
+          <button class="btn" type="submit">Register &amp; Continue</button>
+          <a class="btn secondary" href="{% url 'home' %}">Back</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+{% endif %}
+{% endblock %}
+

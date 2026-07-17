@@ -1,0 +1,376 @@
+import os
+import json
+from django.contrib.auth.hashers import make_password, check_password
+from django.db import models
+from django.utils import timezone
+
+
+class StudentIdentity(models.Model):
+    """
+    One row per email (master student record).
+    Exists because Student enrollment is per (email + course).
+    """
+    email = models.EmailField(primary_key=True, max_length=255)
+    name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        db_table = "submissions_student_identity"
+
+    def __str__(self):
+        return f"{self.name} ({self.email})"
+
+
+class Team(models.Model):
+    """
+    Team table keyed by team_id (primary key).
+    Supports multi-member teams where multiple StudentIdentity records
+    can be associated with the same team_id.
+    """
+    team_id = models.CharField(db_column="TeamID", max_length=50, primary_key=True)
+
+    # Multiple students can belong to same team (ForeignKey, not OneToOne)
+    student = models.ForeignKey(
+        StudentIdentity,
+        on_delete=models.CASCADE,
+        db_column="email",
+        related_name="teams",
+    )
+
+    team_preference = models.BooleanField(db_column="TeamPreference", default=False)
+    team_count = models.PositiveIntegerField(db_column="TeamCount", default=0)
+
+    class Meta:
+        db_table = "submissions_team"
+
+    def __str__(self):
+        return f"{self.team_id}"
+
+
+class Student(models.Model):
+    """
+    Student enrollment table: unique per (email + course).
+    """
+    STATUS_CHOICES = [
+        ("Registered", "Registered"),
+        ("TeamIDGiven", "TeamIDGiven"),
+        ("CapStoneProjectsAssigned", "CapStoneProjectsAssigned"),
+        ("ReadyForClientPick", "ReadyForClientPick"),
+        ("ClientProjectAssigned", "ClientProjectAssigned"),
+        ("AllCompleted", "AllCompleted"),
+    ]
+
+    id = models.BigAutoField(primary_key=True)
+
+    identity = models.ForeignKey(
+        StudentIdentity,
+        on_delete=models.CASCADE,
+        db_column="email",
+        related_name="enrollments",
+    )
+
+    course = models.CharField(max_length=120, db_column="course")
+
+    status = models.CharField(
+        max_length=40,
+        choices=STATUS_CHOICES,
+        db_column="status",
+        default="Registered",
+    )
+
+    # optional team mapping stored in Student table; points to Team.team_id
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="TeamID",
+        related_name="students",
+        to_field="team_id",
+    )
+
+    class Meta:
+        db_table = "submissions_student"
+        constraints = [
+            models.UniqueConstraint(fields=["identity", "course"], name="uniq_student_email_course"),
+        ]
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.identity.email} - {self.course}"
+
+
+class ProjectRegistry(models.Model):
+    """
+    Project Registry: list of all projects and descriptions.
+    Future extension point.
+    """
+    PROJECT_TYPE_CHOICES = [
+        ("Capstone", "Capstone"),
+        ("Client", "Client"),
+    ]
+
+    project_id = models.CharField(max_length=50, primary_key=True, db_column="ProjectID")
+
+    course = models.CharField(max_length=120, db_column="Course")
+    project_name = models.CharField(max_length=255, db_column="ProjectName")
+    project_type = models.CharField(max_length=20, choices=PROJECT_TYPE_CHOICES, db_column="ProjectType")
+
+    llm_input_prompt = models.TextField(db_column="LLMInputPrompt", null=True, blank=True)
+
+    # Project documentation (PDF, DOCX, etc.)
+    project_document = models.FileField(
+        upload_to="project_docs/%Y/%m/%d/",
+        null=True,
+        blank=True,
+        db_column="ProjectDocument",
+        help_text="Project specification, guidelines, or instructions (PDF, DOCX, etc.)"
+    )
+
+    # This is your "submission schema"
+    expected_submission = models.JSONField(
+        db_column="ExpectedSubmissionJSON",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "submissions_project_registry"
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["project_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.course} | {self.project_id} - {self.project_name}"
+
+    @property
+    def submission_schema_json(self) -> str:
+        """
+        Returns ExpectedSubmissionJSON as a JSON string safe for HTML data-* attributes.
+        """
+        return json.dumps(self.expected_submission or {})
+
+
+class TeamProject(models.Model):
+    """
+    Projects Assignment table (Team + Project + Status).
+    This is the SOURCE OF TRUTH for:
+      - pending projects (status=assigned)
+      - submitted projects (status=submitted)
+      - evaluated projects (status=evaluated)
+    """
+    STATUS_CHOICES = [
+        ("assigned", "assigned"),
+        ("submitted", "submitted"),
+        ("evaluated", "evaluated"),
+    ]
+
+    id = models.BigAutoField(primary_key=True)
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        db_column="TeamID",
+        related_name="team_projects",
+        to_field="team_id",
+    )
+
+    project = models.ForeignKey(
+        ProjectRegistry,
+        on_delete=models.CASCADE,
+        db_column="ProjectID",
+        related_name="team_projects",
+    )
+
+    # Optional denormalized copy; you can also leave null and always read from project.project_type
+    project_type = models.CharField(
+        max_length=20,
+        choices=ProjectRegistry.PROJECT_TYPE_CHOICES,
+        db_column="ProjectType",
+        null=True,
+        blank=True,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="assigned",
+        db_column="status",
+    )
+
+    assigned_at = models.DateTimeField(auto_now_add=True, db_column="assigned_at")
+    updated_at = models.DateTimeField(auto_now=True, db_column="updated_at")
+
+    class Meta:
+        db_table = "submissions_team_project"
+        constraints = [
+            models.UniqueConstraint(fields=["team", "project"], name="uniq_team_project"),
+        ]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["assigned_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.team.team_id} | {self.project.project_id} | {self.status}"
+
+
+class Submission(models.Model):
+    """
+    Submission event table.
+    IMPORTANT: team_project is nullable TEMPORARILY to allow migrations
+    if your DB already has older Submission rows.
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    team_project = models.ForeignKey(
+        TeamProject,
+        on_delete=models.CASCADE,
+        db_column="team_project_id",
+        related_name="submissions",
+        null=True,      # ✅ TEMP for migration safety
+        blank=True,     # ✅ TEMP for migration safety
+    )
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        db_column="student_enrollment_id",
+        related_name="submissions",
+    )
+
+    submission_link = models.URLField(db_column="submission_link", max_length=1000, blank=True, null=True)
+    evaluated = models.BooleanField(db_column="evaluated", default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_column="created_at")
+
+    class Meta:
+        db_table = "submissions_submission"
+        indexes = [
+            models.Index(fields=["evaluated"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        if self.team_project_id:
+            tp = self.team_project
+            return f"{tp.team.team_id} | {tp.project.project_id} | {self.student.identity.email}"
+        return f"(no team_project) | {self.student.identity.email}"
+
+
+def submission_upload_path(instance, filename: str) -> str:
+    """
+    Store files under:
+      submissions/<TEAMID>/<PROJECTID>/<timestamp>_<original_filename>
+
+    Uses Submission -> TeamProject -> (Team, Project)
+    """
+    ts = timezone.now().strftime("%Y%m%d_%H%M%S")
+    safe = filename.replace(" ", "_")
+
+    # If somehow team_project is null (older rows), store in a fallback folder
+    if not instance.submission.team_project_id:
+        return os.path.join("submissions", "unknown_team", "unknown_project", f"{ts}_{safe}")
+
+    team_id = instance.submission.team_project.team.team_id
+    project_id = instance.submission.team_project.project.project_id
+
+    return os.path.join("submissions", team_id, project_id, f"{ts}_{safe}")
+
+
+class SubmissionFile(models.Model):
+    """
+    Multiple uploaded files per submission.
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    submission = models.ForeignKey(
+        Submission,
+        on_delete=models.CASCADE,
+        related_name="files",
+    )
+
+    file = models.FileField(upload_to=submission_upload_path)
+    original_name = models.CharField(max_length=300, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "submissions_submission_file"
+        indexes = [models.Index(fields=["uploaded_at"])]
+
+    def __str__(self):
+        return self.original_name or self.file.name
+
+
+class Evaluation(models.Model):
+    """
+    Evaluation table: unique per (TeamID, ProjectID).
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        db_column="TeamID",
+        related_name="evaluations",
+        to_field="team_id",
+    )
+
+    course = models.CharField(max_length=120, db_column="course")
+
+    project = models.ForeignKey(
+        ProjectRegistry,
+        on_delete=models.CASCADE,
+        db_column="ProjectID",
+        related_name="evaluations",
+    )
+
+    evaluation_report = models.TextField(db_column="evaluation_report", blank=True, null=True)
+    evaluation_grade = models.CharField(max_length=20, db_column="evaluation_grade", blank=True, null=True)
+    visibility_after = models.DateTimeField(db_column="visibility_after", blank=True, null=True)
+    email_sent = models.BooleanField(default=False, db_column="email_sent")
+    created_at = models.DateTimeField(auto_now_add=True, db_column="created_at")
+    updated_at = models.DateTimeField(auto_now=True, db_column="updated_at")
+
+    class Meta:
+        db_table = "submissions_evaluation"
+        constraints = [
+            models.UniqueConstraint(fields=["team", "project"], name="uniq_evaluation_team_project"),
+        ]
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["visibility_after"]),
+            models.Index(fields=["visibility_after", "email_sent"]),
+        ]
+
+    def __str__(self):
+        return f"{self.team.team_id} - {self.project.project_id}"
+
+class AdminUser(models.Model):
+    """
+    Admin user table - email-only authentication
+    """
+    email = models.EmailField(primary_key=True, max_length=255)
+    name = models.CharField(max_length=255)
+    role = models.CharField(
+        max_length=20,
+        choices=[
+            ("superadmin", "Super Admin"),
+            ("admin", "Admin"),
+            ("evaluator", "Evaluator"),
+        ],
+        default="admin",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "submissions_admin_user"
+
+    def __str__(self):
+        return f"{self.name} ({self.email}) - {self.role}"
+

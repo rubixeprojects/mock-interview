@@ -1,0 +1,199 @@
+{% extends "Submissions/admin/base_admin.html" %}
+
+{% block title %}Change Team ID{% endblock %}
+{% block nav_change_team_active %}active{% endblock %}
+
+{% block content %}
+  <h1 class="page-title">Change Team ID</h1>
+  <p class="page-subtitle">Search for students and reassign them to individual teams or generate team IDs</p>
+
+  <div class="card">
+    <div class="search-bar">
+      <input 
+        type="text" 
+        id="search-input" 
+        placeholder="Search by name, email, or current team ID..." 
+        value="{{ search_query }}"
+        style="flex:1; padding:12px; border:2px solid #3b82f6; border-radius:12px; font-size:14px; background:#fff;"
+      >
+      <button onclick="searchStudents()" style="padding:12px 24px; background:var(--blue-700); color:#fff; border:none; border-radius:12px; font-weight:700; cursor:pointer; margin-left:10px;">Search</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Course</th>
+          <th>Current Team ID</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr data-student-id="{{ student.id }}" data-student-email="{{ student.identity.email }}">
+          <td><strong>{{ student.identity.name }}</strong></td>
+          <td>{{ student.identity.email }}</td>
+          <td><span class="badge info">{{ student.course }}</span></td>
+          <td class="team-id-cell">{{ student.team.team_id|default:"-" }}</td>
+          <td><span class="badge {% if student.team %}success{% else %}warning{% endif %} status-badge">{{ student.status|default:"Individual" }}</span></td>
+          <td>
+            <button class="btn-action btn-individual" onclick="reassignToIndividual(this, '{{ student.identity.email|escapejs }}', {{ student.id }})">
+              Assign Individual
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:var(--text-500); padding:20px;">
+            {% if search_query %}
+              No students found for: <strong>{{ search_query }}</strong>
+            {% else %}
+              Enter a search term and click "Search" to find students
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <style>
+    .btn-action {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      margin: 0 4px;
+    }
+    
+    .btn-individual {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .btn-individual:hover:not(:disabled) {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+    
+    .btn-individual:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge.info {
+      background: #dbeafe;
+      color: #0c4a6e;
+    }
+    
+    .badge.success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .badge.warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+  </style>
+
+  <script>
+    function searchStudents() {
+      const query = document.getElementById('search-input').value.trim();
+      
+      if (!query) {
+        alert('Please enter a search term');
+        return;
+      }
+      
+      // Redirect to the same page with search query
+      window.location.href = `/portal/change-team-id/?q=${encodeURIComponent(query)}`;
+    }
+
+    async function reassignToIndividual(button, email, studentId) {
+      if (!confirm(`Assign ${email} to individual team?\n\nThey will receive a confirmation email with their team ID.`)) {
+        return;
+      }
+      
+      button.disabled = true;
+      const originalText = button.textContent;
+      button.textContent = 'Processing...';
+      
+      try {
+        const response = await fetch('/portal/api/reassign-student/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ student_id: studentId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+          if (row) {
+            row.querySelector('.team-id-cell').textContent = data.team_id || '-';
+            row.querySelector('.status-badge').textContent = 'Individual';
+          }
+          
+          button.textContent = 'Assigned!';
+          button.style.background = '#10b981';
+          
+          setTimeout(() => {
+            button.disabled = false;
+            button.textContent = originalText;
+            button.style.background = '#3b82f6';
+          }, 2000);
+          
+          alert(`Success!\n\nTeam ID: ${data.team_id}\nEmail sent to: ${email}`);
+        } else {
+          alert(`Error: ${data.message}`);
+          button.disabled = false;
+          button.textContent = originalText;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert(`Network error: ${error.message}`);
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    }
+    
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    // Allow Enter key to search
+    document.getElementById('search-input').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') searchStudents();
+    });
+  </script>
+{% endblock %}

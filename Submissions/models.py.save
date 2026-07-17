@@ -1,0 +1,308 @@
+import os
+from django.db import models
+from django.utils import timezone
+
+
+class StudentIdentity(models.Model):
+    """
+    One row per email (master student record).
+    Exists because Student enrollment is per (email + course).
+    """
+    email = models.EmailField(primary_key=True, max_length=255)
+    name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        db_table = "submission_student_identity"
+
+    def __str__(self):
+        return f"{self.name} ({self.email})"
+
+
+class Team(models.Model):
+    """
+    Team table keyed by email (1-1 with StudentIdentity).
+    """
+    student = models.OneToOneField(
+        StudentIdentity,
+        on_delete=models.CASCADE,
+        db_column="email",
+        related_name="team",
+        primary_key=True,  # email is PK for this table
+    )
+    team_preference = models.BooleanField(db_column="TeamPreference", default=False)
+    team_id = models.CharField(db_column="TeamID", max_length=50, unique=True)
+    team_count = models.PositiveIntegerField(db_column="TeamCount", default=0)
+
+    class Meta:
+        db_table = "-rw-rw-r-- 1 ubuntu ubuntu  409 Jan 10 06:42 wsgi.py
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal/InternshipPortal$ cat .env
+DB_NAME=staging
+DB_USER=admin
+DB_PASSWORD=Datamites1234$
+DB_HOST=database-1.c386s6kwe2mp.ap-south-1.rds.amazonaws.com
+DB_PORT=3306
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal/InternshipPortal$ nano .env
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal/InternshipPortal$ cd ..
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal$ python3 manage.py makemigrations
+pytTraceback (most recent call last):
+  File "/DarkSpace/InternshipPortal/manage.py", line 11, in main
+    from django.core.management import execute_from_command_line
+ModuleNotFoundError: No module named 'django'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/DarkSpace/InternshipPortal/manage.py", line 22, in <module>
+    main()
+  File "/DarkSpace/InternshipPortal/manage.py", line 13, in main
+    raise ImportError(
+ImportError: Couldn't import Django. Are you sure it's installed and available on your PYTHONPATH environment variable? Did you forget to activate a virtual environment?
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal$ cd /DarkSpace/HippoCampus/bin/activate
+-bash: cd: /DarkSpace/HippoCampus/bin/activate: Not a directory
+ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal$ source /DarkSpace/HippoCampus/bin/activate
+(HippoCampus) ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal$ ls
+InternshipPortal  Submissions  db.sqlite3  manage.py
+(HippoCampus) ubuntu@ip-172-31-43-95:/DarkSpace/InternshipPortal$ python3 manage.py makemigrations
+No changes detectedteam"
+        indexes = [
+            models.Index(fields=["team_id"]),
+        ]
+
+    def __str__(self):
+        return f"{self.team_id} ({self.student.email})"
+
+
+class Student(models.Model):
+    """
+    Student enrollment table: unique per (email + course).
+    Django doesn't support composite PKs directly, so:
+      - use an auto PK
+      - enforce uniqueness via UniqueConstraint
+    """
+    STATUS_CHOICES = [
+        ("Registered", "Registered"),
+        ("TeamIDGiven", "TeamIDGiven"),
+        ("CapStoneProjectsAssigned", "CapStoneProjectsAssigned"),
+        ("ClientProjectAssigned", "ClientProjectAssigned"),
+    ]
+
+    id = models.BigAutoField(primary_key=True)
+
+    identity = models.ForeignKey(
+        StudentIdentity,
+        on_delete=models.CASCADE,
+        db_column="email",
+        related_name="enrollments",
+    )
+
+    course = models.CharField(max_length=120, db_column="course")
+
+    status = models.CharField(
+        max_length=40,
+        choices=STATUS_CHOICES,
+        db_column="status",
+        default="Registered",
+    )
+
+    # Optional: TeamID stored in Student table; points to Team.team_id
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        db_column="TeamID",
+        related_name="students",
+        to_field="team_id",
+    )
+
+    class Meta:
+        db_table = "student"
+        constraints = [
+            models.UniqueConstraint(fields=["identity", "course"], name="uniq_student_email_course"),
+        ]
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.identity.email} - {self.course}"
+
+
+class ProjectRegistry(models.Model):
+    """
+    Project Registry: A comprehensive list of all projects and descriptions
+    """
+    PROJECT_TYPE_CHOICES = [
+        ("Capstone", "Capstone"),
+        ("Client", "Client"),
+    ]
+
+    # If ProjectID must be unique globally, keep it as PK
+    project_id = models.CharField(max_length=50, primary_key=True, db_column="ProjectID")
+
+    course = models.CharField(max_length=120, db_column="Course")
+    project_name = models.CharField(max_length=255, db_column="ProjectName")
+    project_type = models.CharField(max_length=20, choices=PROJECT_TYPE_CHOICES, db_column="ProjectType")
+
+    dataset_link = models.URLField(max_length=1000, db_column="DatasetLink", null=True, blank=True)
+    llm_input_prompt = models.TextField(db_column="LLMInputPrompt", null=True, blank=True)
+
+    expected_submission = models.JSONField(
+        db_column="ExpectedSubmissionJSON",
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        db_table = "project_registry"
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["project_type"]),
+        ]
+        # Optional: if in future you want ProjectID unique per course instead of globally:
+        # constraints = [models.UniqueConstraint(fields=["course","project_id"], name="uniq_course_projectid")]
+
+    def __str__(self):
+        return f"{self.course} | {self.project_id} - {self.project_name}"
+
+    @property
+    def submission_schema_json(self):
+        """
+        Returns ExpectedSubmissionJSON as a JSON string
+        safe to embed inside HTML data-* attributes.
+        """
+        return json.dumps(self.expected_submission or {})
+
+
+class Submission(models.Model):
+    """
+    Submission is stored against Team + Project (NO DUPLICATION on Team+Project).
+    Student enrollment is stored for traceability.
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        db_column="TeamID",
+        related_name="submissions",
+        to_field="team_id",
+    )
+
+    project = models.ForeignKey(
+        ProjectRegistry,
+        on_delete=models.CASCADE,
+        db_column="ProjectID",
+        related_name="submissions",
+    )
+
+    student = models.ForeignKey(
+        Student,
+        on_delete=models.CASCADE,
+        db_column="student_enrollment_id",
+        related_name="submissions",
+    )
+
+    submission_link = models.URLField(db_column="submission_link", max_length=1000, blank=True, null=True)
+    evaluated = models.BooleanField(db_column="evaluated", default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_column="created_at")
+
+    class Meta:
+        db_table = "submission"
+        constraints = [
+            # ✅ No-dup rule = Option A
+            models.UniqueConstraint(fields=["team", "project"], name="uniq_submission_team_project"),
+        ]
+        indexes = [
+            models.Index(fields=["evaluated"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.team.team_id} | {self.project.project_id} | {self.student.identity.email}"
+
+
+def submission_upload_path(instance, filename: str) -> str:
+    """
+    Store files under:
+      submissions/<TEAMID>/<PROJECTID>/<timestamp>_<original_filename>
+
+    This keeps things grouped and avoids collisions.
+    """
+    ts = timezone.now().strftime("%Y%m%d_%H%M%S")
+    safe = filename.replace(" ", "_")
+
+    team_id = instance.submission.team.team_id
+    project_id = instance.submission.project.project_id
+
+    return os.path.join("submissions", team_id, project_id, f"{ts}_{safe}")
+
+
+class SubmissionFile(models.Model):
+    """
+    Multiple uploaded files per submission.
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    submission = models.ForeignKey(
+        Submission,
+        on_delete=models.CASCADE,
+        related_name="files",
+    )
+
+    file = models.FileField(upload_to=submission_upload_path)
+    original_name = models.CharField(max_length=300, blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "submission_file"
+        indexes = [
+            models.Index(fields=["uploaded_at"]),
+        ]
+
+    def __str__(self):
+        return self.original_name or self.file.name
+
+
+class Evaluation(models.Model):
+    """
+    Evaluation table: unique per (TeamID, ProjectID).
+    """
+    id = models.BigAutoField(primary_key=True)
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        db_column="TeamID",
+        related_name="evaluations",
+        to_field="team_id",
+    )
+
+    course = models.CharField(max_length=120, db_column="course")
+
+    project = models.ForeignKey(
+        ProjectRegistry,
+        on_delete=models.CASCADE,
+        db_column="ProjectID",
+        related_name="evaluations",
+    )
+
+    evaluation_report = models.TextField(db_column="evaluation_report", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_column="created_at")
+    updated_at = models.DateTimeField(auto_now=True, db_column="updated_at")
+
+    class Meta:
+        db_table = "evaluation"
+        constraints = [
+            models.UniqueConstraint(fields=["team", "project"], name="uniq_evaluation_team_project"),
+        ]
+        indexes = [
+            models.Index(fields=["course"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.team.team_id} - {self.project.project_id}"
+
