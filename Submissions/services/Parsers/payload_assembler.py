@@ -121,6 +121,39 @@ class PayloadAssembler:
                     "error": f"Parsing failed: {parsed_result.get('error')}"
                 }
 
+            # Step 1.5: Validate parsed content has real data
+            # If all parsed files have failed content (e.g. image OCR failed),
+            # reject the evaluation instead of sending empty/file-name-only data to LLM
+            parsed_files = parsed_result.get("parsed_files", [])
+            if parsed_files:
+                files_with_content = 0
+                for pf in parsed_files:
+                    content = pf.get("content")
+                    if content is None:
+                        continue
+                    # Check for image OCR failure: content is a dict with llm_success=False
+                    if isinstance(content, dict):
+                        if content.get("llm_success") is False or content.get("status") == "llm_analysis_failed":
+                            continue
+                        if content.get("extracted_text") is None and content.get("status") == "llm_analysis_failed":
+                            continue
+                    # Has real content
+                    files_with_content += 1
+
+                if files_with_content == 0:
+                    return {
+                        "project_id": project_id,
+                        "status": "error",
+                        "evaluation": None,
+                        "parsing_report": {
+                            "submission_type": parsed_result.get("submission_type"),
+                            "files_parsed": len(parsed_files),
+                            "status": "all_content_failed",
+                            "errors": "All files failed to parse (image OCR or content extraction failed for every file)"
+                        },
+                        "error": "Submission parsing failed: could not extract content from any file. Please try again."
+                    }
+
             # Step 2: Assemble payload
             assembled_payload, evaluation_prompt = self._assemble_payload(
                 question=question,
