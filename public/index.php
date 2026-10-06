@@ -118,12 +118,26 @@ if ($method === 'GET' && $path === '/healthz') {
 }
 
 if ($method === 'GET' && $path === '/config') {
+    $ice = $cfg->iceServers();
+    $turnOn = false;
+    foreach ($ice as $server) {
+        $urls = $server['urls'] ?? [];
+        foreach (is_array($urls) ? $urls : [$urls] as $url) {
+            if (str_starts_with((string) $url, 'turn')) {
+                $turnOn = true;
+            }
+        }
+    }
     json_response([
         'dograh_base_url'        => $cfg->dographBaseUrl(),
         'ws_base'                => $cfg->wsBase(),
         'workflow_id'            => $cfg->workflowId(),
         'workflow_uuid'          => $cfg->workflowUuid(),
-        'ice_servers'            => $cfg->iceServers(),
+        'ice_servers'            => array_map(
+            static fn ($s) => ['urls' => $s['urls']],
+            $ice
+        ),
+        'turn_configured'        => $turnOn,
         'eval_configured'        => $cfg->evalModel() !== '',
         'eval_model'             => $cfg->evalModel(),
         'eval_model_suggestions' => [
@@ -145,17 +159,39 @@ if ($method === 'POST' && $path === '/api/interviews') {
     if ($name === '') {
         json_response(['detail' => 'candidate_name is required'], 422);
     }
-    $role = trim((string) ($b['role'] ?? 'Software Engineer'));
+    $course = trim((string) ($b['course'] ?? ''));
+    $role = trim((string) ($b['role'] ?? ''));
     if ($role === '') {
-        $role = 'Software Engineer';
+        $role = $course !== '' ? $course : 'Software Engineer';
     }
-    $extra = is_array($b['extra_context'] ?? null) ? $b['extra_context'] : [];
+    $extra = [];
+    if (is_array($b['extra_context'] ?? null)) {
+        foreach ($b['extra_context'] as $key => $value) {
+            if (!is_string($key) || !preg_match('/^[A-Za-z][A-Za-z0-9_]{0,40}$/', $key)) {
+                continue;
+            }
+            if (preg_match('/token|secret|password|api_?key|^key$/i', $key)) {
+                continue;
+            }
+            if (is_array($value) || is_object($value)) {
+                continue;
+            }
+            $text = trim((string) $value);
+            if ($text === '') {
+                continue;
+            }
+            $extra[$key] = substr($text, 0, 200);
+        }
+    }
+    if ($course !== '') {
+        $extra['course'] = substr($course, 0, 200);
+    }
     $context = array_merge(['candidate_name' => $name, 'role' => $role], $extra);
 
     try {
         $init = $dograh->initEmbedSession($context);
     } catch (Throwable $e) {
-        json_response(['detail' => $e->getMessage()], 502);
+        json_response(['detail' => $e->getMessage()], 424);
     }
 
     $session = $store->create($name, $role, (string) $init['session_token'], (int) $init['workflow_run_id']);
@@ -192,7 +228,7 @@ if (preg_match('#^/api/interviews/([a-f0-9]+)(/messages|/end|/report)?$#', $path
         try {
             $run = $dograh->getRun((int) $session['workflow_run_id']);
         } catch (Throwable $e) {
-            json_response(['detail' => $e->getMessage()], 502);
+            json_response(['detail' => $e->getMessage()], 424);
         }
         $messages = Transcript::messagesFromRun($run);
         if ($messages) {
@@ -223,7 +259,7 @@ if (preg_match('#^/api/interviews/([a-f0-9]+)(/messages|/end|/report)?$#', $path
         try {
             $run = $dograh->getRun((int) $session['workflow_run_id']);
         } catch (Throwable $e) {
-            json_response(['detail' => $e->getMessage()], 502);
+            json_response(['detail' => $e->getMessage()], 424);
         }
         $messages = Transcript::messagesFromRun($run);
         if ($messages) {
@@ -285,7 +321,7 @@ if ($method === 'POST' && $path === '/api/vision/analyze') {
     try {
         json_response((new Vision($cfg))->analyze($frame, isset($b['session_id']) ? (string) $b['session_id'] : null));
     } catch (Throwable $e) {
-        json_response(['detail' => $e->getMessage()], 502);
+        json_response(['detail' => $e->getMessage()], 424);
     }
 }
 

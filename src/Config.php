@@ -17,7 +17,9 @@ final class Config
     {
         $this->root = $root;
         $envFile = $root . '/.env';
-        if (is_file($envFile)) {
+        // Docker injects the same values through env_file. The host file stays
+        // mode 600, so the container user may not be able to open it.
+        if (is_readable($envFile)) {
             foreach (file($envFile, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
                 $line = trim($line);
                 if ($line === '' || $line[0] === '#') {
@@ -125,10 +127,103 @@ final class Config
         return $u ?: ['stun:stun.l.google.com:19302'];
     }
 
-    /** @return array<int,array{urls:string}> */
+    public function meteredConfigured(): bool
+    {
+        return trim((string) $this->get('METERED_TURN_DOMAIN', '')) !== ''
+            && trim((string) $this->get('METERED_TURN_API_KEY', '')) !== '';
+    }
+
+    /**
+     * ICE servers for the browser peer connection.
+     *
+     * Metered is preferred: the API key stays on the server and the browser
+     * receives only the short-lived username and credential Metered returns.
+     * The optional local coturn path uses TURN REST HMAC-SHA1 (draft-uberti).
+     * SHA-1 is required by that protocol and is not used for anything else.
+     *
+     * @return array<int,array<string,mixed>>
+     */
     public function iceServers(): array
     {
-        return array_map(fn ($u) => ['urls' => $u], $this->iceStunUrls());
+        if ($this->meteredConfigured()) {
+            return $this->meteredIceServers();
+        }
+        $servers = array_map(fn ($u) => ['urls' => $u], $this->iceStunUrls());
+        $host = trim((string) $this->get('TURN_HOST', ''));
+        $secret = (string) $this->get('TURN_SECRET', '');
+        if ($host === '' || $secret === '') {
+            return $servers;
+        }
+        $port = (int) ($this->get('TURN_PORT', '3478') ?: '3478');
+        $username = (string) (time() + 86400) . ':interview';
+        $password = base64_encode(hash_hmac('sha1', $username, $secret, true));
+        $servers[] = [
+            'urls' => [
+                "turn:{$host}:{$port}",
+                "turn:{$host}:{$port}?transport=tcp",
+            ],
+            'username' => $username,
+            'credential' => $password,
+        ];
+        return $servers;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private function meteredIceServers(): array
+    {
+        $fallback = array_map(fn ($u) => ['urls' => $u], $this->iceStunUrls());
+        $domain = trim((string) $this->get('METERED_TURN_DOMAIN', ''));
+        $key = trim((string) $this->get('METERED_TURN_API_KEY', ''));
+        $cacheFile = $this->root . '/data/metered-ice.json';
+        if (is_readable($cacheFile)) {
+            $cached = json_decode((string) file_get_contents($cacheFile), true);
+            if (is_array($cached) && (int) ($cached['exp'] ?? 0) > time() && is_array($cached['servers'] ?? null)) {
+                return $cached['servers'];
+            }
+        }
+        $url = 'https://' . $domain . '/api/v1/turn/credentials?apiKey=' . rawurlencode($key);
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return $fallback;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 8,
+            CURLOPT_CONNECTTIMEOUT => 5,
+        ]);
+        $body = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if (!is_string($body) || $code !== 200) {
+            error_log('Metered TURN credential request failed');
+            return $fallback;
+        }
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded)) {
+            return $fallback;
+        }
+        $servers = [];
+        foreach ($decoded as $item) {
+            if (!is_array($item) || !isset($item['urls'])) {
+                continue;
+            }
+            $entry = ['urls' => $item['urls']];
+            if (isset($item['username']) && $item['username'] !== '') {
+                $entry['username'] = (string) $item['username'];
+            }
+            if (isset($item['credential']) && $item['credential'] !== '') {
+                $entry['credential'] = (string) $item['credential'];
+            }
+            $servers[] = $entry;
+        }
+        if ($servers === []) {
+            return $fallback;
+        }
+        $dir = dirname($cacheFile);
+        if (is_dir($dir) && is_writable($dir)) {
+            file_put_contents($cacheFile, json_encode(['exp' => time() + 300, 'servers' => $servers]));
+        }
+        return $servers;
     }
 
     // --- This backend -----------------------------------------------------

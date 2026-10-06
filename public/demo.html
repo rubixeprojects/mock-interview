@@ -98,13 +98,14 @@
       <div class="row">
         <div>
           <label>Candidate name</label>
-          <input id="name" value="Alex Candidate" />
+          <input id="name" placeholder="From the link, or type a name" />
         </div>
         <div>
-          <label>Role</label>
-          <input id="role" value="Data Scientist" />
+          <label>Course</label>
+          <input id="course" placeholder="From the link, or type a course" />
         </div>
       </div>
+      <div id="fromLink" class="muted" style="margin-top:8px; display:none">Name and course were taken from the link and will be sent to the interviewer.</div>
       <div class="actions">
         <button id="startBtn" class="btn-primary">Start interview</button>
         <button id="endBtn" class="btn-danger" disabled>End</button>
@@ -176,6 +177,48 @@ function setState(s, kind) {
   const dot = $("dot");
   dot.className = "dot" + (kind === "on" ? " on" : kind === "err" ? " err" : "");
 }
+
+// Link fields become Dograh context variables ({{initial_context.<key>}}).
+// Example: ?name=Priya%20Sharma&course=Data%20Science&email=priya@example.com
+function linkContext() {
+  const params = new URLSearchParams(location.search);
+  const pick = (...keys) => {
+    for (const key of keys) {
+      const value = (params.get(key) || "").trim();
+      if (value) return value.slice(0, 200);
+    }
+    return "";
+  };
+  const name = pick("name", "candidate_name", "candidate", "full_name");
+  const course = pick("course", "course_name", "coursename") || pick("role");
+  const role = pick("role") || course;
+  const used = new Set(["name", "candidate_name", "candidate", "full_name", "course", "course_name", "coursename", "role"]);
+  const blocked = /token|secret|password|api_?key|^key$/i;
+  const extra = {};
+  for (const [rawKey, rawValue] of params) {
+    const key = rawKey.trim();
+    if (!/^[A-Za-z][A-Za-z0-9_]{0,40}$/.test(key)) continue;
+    if (used.has(key.toLowerCase()) || blocked.test(key)) continue;
+    const value = rawValue.trim().slice(0, 200);
+    if (value) extra[key] = value;
+  }
+  if (course) extra.course = course;
+  return { candidate_name: name, role, extra_context: extra, fromLink: Boolean(name || course || Object.keys(extra).length) };
+}
+
+function applyLinkContext() {
+  const linked = linkContext();
+  if (linked.candidate_name) {
+    $("name").value = linked.candidate_name;
+    $("name").readOnly = true;
+  }
+  if (linked.extra_context.course) {
+    $("course").value = linked.extra_context.course;
+    $("course").readOnly = true;
+  }
+  if (linked.fromLink) $("fromLink").style.display = "block";
+}
+applyLinkContext();
 
 let pc = null, ws = null, localStream = null, currentInterviewId = null;
 const pcId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
@@ -275,10 +318,16 @@ async function start() {
     const resp = await fetch("/api/interviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        candidate_name: $("name").value.trim() || "Candidate",
-        role: $("role").value.trim() || "Software Engineer",
-      }),
+      body: JSON.stringify((() => {
+        const linked = linkContext();
+        const course = linked.extra_context.course || $("course").value.trim();
+        return {
+          candidate_name: linked.candidate_name || $("name").value.trim() || "Candidate",
+          role: linked.role || course || "Software Engineer",
+          course,
+          extra_context: { ...linked.extra_context, ...(course ? { course } : {}) },
+        };
+      })()),
     });
     if (!resp.ok) throw new Error(await resp.text());
     cfg = await resp.json();
