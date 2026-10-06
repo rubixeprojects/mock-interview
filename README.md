@@ -14,14 +14,25 @@ It orchestrates a **Dograh** voice agent (WebRTC), proxies camera frames to the
 - Network access to a running Dograh instance (and, optionally, the CV service
   and an LLM provider).
 
-No Composer dependencies — everything is vanilla PHP.
+No Composer dependencies. The application code is plain PHP. On a server it
+runs under Apache inside Docker (the `interview` service in `../deploy`), not
+the PHP built-in server.
 
 ## Run
 
+Production / the Dograh stack (from `../deploy`, after `php-backend/.env` exists):
+
+```bash
+docker compose up -d --build interview
+```
+
+The demo is then at `http://<HOST_IP>:8080/`. The API key stays in `.env` and is
+passed into the container as environment variables. It is not copied into the image.
+
+Local foreground run without Docker:
+
 ```bash
 cp .env.example .env      # then fill in DOGRAH_* and EVAL_LLM_* values
-bash start.sh             # detached on 0.0.0.0:8080, logs -> server.log
-# or, in the foreground:
 php -S 0.0.0.0:8080 router.php
 ```
 
@@ -39,8 +50,11 @@ curl -s http://127.0.0.1:8080/config
 
 ```
 php-backend/
-  router.php            # dev-server router (serves static, else -> index.php)
-  start.sh              # detached launcher
+  Dockerfile            # Apache image used by the deploy `interview` service
+  docker/apache.conf    # document root + front-controller fallback
+  docker/entrypoint.sh  # creates the writable data directory
+  router.php            # local `php -S` router only
+  start.sh              # local detached launcher
   migrate_workflow.php  # CLI: copy a workflow (flow+prompts+config) between Dograh servers
   public/
     index.php           # front controller (all routes)
@@ -122,5 +136,6 @@ never commit them.
   Generative Language API, and `openrouter/*` / `openai/*` / `gpt-*` (or anything
   with `EVAL_LLM_API_BASE`) via an OpenAI-compatible `/chat/completions`
   endpoint. The Gemini 503 fallback chain is preserved.
-- Runs under the PHP built-in server, PHP-FPM + nginx/Apache, or any SAPI. The
-  provider API key is read from `.env` only (never from the browser).
+- The server path is Apache in Docker (`deploy` service `interview`, host port 8080).
+  `php -S` remains available for a local foreground run. The provider API key is
+  read from `.env` / the container environment only (never from the browser).
