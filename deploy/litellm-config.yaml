@@ -1,0 +1,27 @@
+# LiteLLM proxy config — intentionally CLEAN.
+#
+# No models and no provider keys are defined here. Because STORE_MODEL_IN_DB=True
+# (set in docker-compose.yml), you add models from the UI at
+#   http://<HOST_IP>:4000/ui  ->  "Models"  ->  "Add Model"
+# and they are stored (encrypted with LITELLM_SALT_KEY) in the LiteLLM database.
+#
+# You can still pre-declare models here if you prefer file-based config; put the
+# provider key in .env and reference it as os.environ/VAR_NAME, e.g.:
+#
+#   model_list:
+#     - model_name: my-gpt
+#       litellm_params:
+#         model: openrouter/openai/gpt-4o-mini
+#         api_key: os.environ/OPENROUTER_API_KEY
+#
+# (Never write raw keys into this file — use os.environ/... references.)
+
+general_settings:
+  # Persist models added via the UI in the database.
+  store_model_in_db: true
+
+litellm_settings:
+  telemetry: false
+  drop_params: true
+
+model_list: []

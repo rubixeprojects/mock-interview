@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Mock Interview Portal - Datamites</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text-main); -webkit-font-smoothing: antialiased; line-height: 1.5; }
+    .text-primary { color: var(--primary); }
+    .text-success { color: var(--success); }
+    .mr-1 { margin-right: 6px; }
+    .app-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand-icon { width: 38px; height: 38px; border-radius: 10px; background: var(--primary-gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(79,70,229,0.3); }
+    .brand-text h1 { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .brand-text span { font-size: 11.5px; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .header-actions { display: flex; align-items: center; gap: 16px; }
+    .live-status-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; background: #f1f5f9; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-light); display: inline-block; }
+    .pulse-dot.online { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.2); }
+    .pulse-dot.busy { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.25); }
+    .pulse-dot.bad { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.25); }
+    .btn-return-lms { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text-muted); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+    .btn-return-lms:hover { background: #f8fafc; color: var(--text-main); border-color: #cbd5e1; }
+    .dashboard-container { max-width: 1480px; margin: 28px auto; padding: 0 20px 50px; }
+    .dashboard-layout { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 4px 24px -2px rgba(15,23,42,0.06); overflow: hidden; min-height: 720px; }
+    .dashboard-sidebar { width: 280px; min-width: 280px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); border-right: 1px solid var(--border); padding: 24px 0; display: flex; flex-direction: column; }
+    .candidate-profile-card { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 18px; text-align: center; }
+    .candidate-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--primary-gradient); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
+    .candidate-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; word-break: break-word; }
+    .candidate-role-badge { display: inline-block; font-size: 11.5px; font-weight: 700; color: #4338ca; background: #e0e7ff; padding: 3px 10px; border-radius: 20px; margin-top: 4px; }
+    .candidate-email { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; word-break: break-all; }
+    .sidebar-nav-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-light); padding: 0 22px 10px; }
+    .sidebar-menu { list-style: none; padding: 0 12px; display: flex; flex-direction: column; gap: 4px; }
+    .menu-item-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 14px; border-radius: 10px; font-size: 13.5px; font-weight: 600; color: var(--text-muted); background: transparent; border: 1px solid transparent; cursor: default; pointer-events: none; text-align: left; user-select: none; }
+    .menu-item-btn.done { color: #15803d; }
+    .menu-item-btn.active { background: var(--primary-gradient); color: #fff; box-shadow: 0 4px 14px rgba(79,70,229,0.35); }
+    .menu-item-btn .icon-box { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background: #fff; color: var(--text-muted); border: 1px solid var(--border); }
+    .menu-item-btn.done .icon-box { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+    .menu-item-btn.active .icon-box { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.3); }
+    .dashboard-content { flex: 1; padding: 28px 32px; min-width: 0; background: #fff; }
+    .content-header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+    .content-header .title { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+    .content-header .subtitle { font-size: 13.5px; color: var(--text-muted); margin-top: 3px; }
+    .lms-context-banner { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid var(--primary); border-radius: 10px; padding: 12px 18px; margin-bottom: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; font-size: 13px; }
+    .context-pill { display: flex; align-items: center; gap: 6px; }
+    .context-pill span { color: var(--text-muted); }
+    .action-button-bar { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 22px; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn-sys-check { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: #1e293b; background: #f8fafc; border: 1.5px solid #cbd5e1; cursor: pointer; }
+    .btn-sys-check:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-sys-check.passed { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+    .sys-preview-grid { display: grid; grid-template-columns: 340px 1fr; gap: 22px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+    .camera-preview-box { position: relative; width: 100%; height: 200px; background: #0f172a; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #334155; }
+    .camera-live-pill { position: absolute; top: 10px; left: 10px; background: rgba(15,23,42,0.85); color: #22c55e; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: none; z-index: 2; }
+    .camera-preview-box video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; }
+    .camera-placeholder { color: #64748b; text-align: center; font-size: 12.5px; }
+    .telemetry-row { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .metric-badge { font-size: 12.5px; font-weight: 700; color: var(--text-muted); background: #f1f5f9; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); white-space: nowrap; }
+    .metric-badge.ok { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+    .metric-badge.bad { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+    .btn-start-primary { display: inline-flex; align-items: center; gap: 9px; padding: 12px 28px; border-radius: 8px; font-size: 14.5px; font-weight: 700; color: #fff; background: var(--primary-gradient); border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(79,70,229,0.35); margin-left: auto; margin-top: 15px; }
+    .btn-start-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .interview-room-card { background: #0f172a; border: 1px solid #334155; border-radius: 14px; padding: 22px; color: #e2e8f0; }
+    .interview-room-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid #1e293b; flex-wrap: wrap; gap: 10px; }
+    .btn-end-interview { background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .btn-end-interview:disabled { opacity: 0.5; cursor: not-allowed; }
+    .interview-grid { display: grid; grid-template-columns: minmax(520px, 1.7fr) minmax(280px, 0.7fr); gap: 20px; align-items: stretch; }
+    .room-video-wrap { position: relative; width: 100%; height: min(74vh, 760px); min-height: 520px; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid #334155; }
+    .room-video-wrap.flagged { outline: 6px solid #ef4444; outline-offset: -6px; box-shadow: 0 0 0 8px rgba(239,68,68,.5); }
+    .room-video-wrap video, .room-video-wrap canvas { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .room-video-wrap canvas { position: absolute; inset: 0; pointer-events: none; }
+    .flag-banner { display: none; position: absolute; left: 0; right: 0; top: 0; z-index: 3; background: rgba(185,28,28,.94); color: #fff; font-weight: 700; text-align: center; padding: 12px 14px; font-size: 15px; }
+    .room-video-wrap.flagged .flag-banner { display: block; }
+    body.exam-alert::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 80; border: 14px solid #ef4444; box-shadow: inset 0 0 120px rgba(239,68,68,.45); }
+    .screen-alert { position: fixed; top: 22px; left: 50%; transform: translateX(-50%); z-index: 90; width: min(760px, calc(100vw - 56px)); background: #b91c1c; color: #fff; border-radius: 12px; padding: 14px 18px; text-align: center; box-shadow: 0 10px 28px rgba(127,29,29,.45); pointer-events: none; }
+    .screen-alert[hidden] { display: none; }
+    .screen-alert strong { display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+    .screen-alert span { display: block; font-size: 16px; font-weight: 700; line-height: 1.35; }
+    .strike-chip { font-weight: 800; }
+    .strike-chip.hot { color: #fecaca; border-color: #ef4444; background: #450a0a; }
+    .cv-pill-box { background: #0b1220; border: 1px solid #334155; border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; margin-top: 14px; }
+    .cv-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .cv-row .k { color: #94a3b8; }
+    .cv-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(16,185,129,0.15); color: #22c55e; }
+    .cv-badge.warn { background: rgba(245,158,11,0.18); color: #fbbf24; }
+    .cv-badge.bad { background: rgba(239,68,68,0.18); color: #fca5a5; }
+    .chat-container { display: flex; flex-direction: column; background: #0b1220; border: 1px solid #334155; border-radius: 10px; height: min(74vh, 760px); min-height: 520px; overflow: hidden; }
+    .chat-header { padding: 10px 16px; border-bottom: 1px solid #334155; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .chat-bubble { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+    .chat-bubble.assistant { align-self: flex-start; background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+    .chat-bubble.user { align-self: flex-end; background: var(--primary-gradient); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-bubble .who { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
+    .chat-bubble.assistant .who { color: #38bdf8; }
+    .chat-bubble.user .who { color: rgba(255,255,255,0.75); }
+    .chat-bubble.interim { opacity: 0.65; font-style: italic; }
+    .stage-pill { align-self: center; background: #1e293b; border: 1px solid #334155; color: #94a3b8; font-size: 11px; padding: 3px 12px; border-radius: 999px; }
+    .report-card-container { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 26px; }
+    .report-head-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .report-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 22px; }
+    .report-stat-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+    .report-stat-box .num { font-size: 22px; font-weight: 800; color: var(--primary); }
+    .report-stat-box .lbl { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .score-banner { display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; }
+    .score-circle { width: 68px; height: 68px; border-radius: 50%; background: var(--primary-gradient); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; flex-shrink: 0; }
+    .violation { position: fixed; inset: 0; z-index: 100; background: rgba(15,23,42,.72); display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .violation[hidden] { display: none; }
+    .violation-card { max-width: 460px; background: #fff; border: 1px solid #fecaca; border-radius: 14px; padding: 22px; }
+    .violation-card h2 { color: #b91c1c; font-size: 20px; margin-bottom: 8px; }
+    @media (max-width: 900px) {
+      .dashboard-layout { flex-direction: column; }
+      .dashboard-sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+      .sys-preview-grid, .interview-grid { grid-template-columns: 1fr; }
+      .room-video-wrap, .chat-container { height: 480px; min-height: 0; }
+      .app-header { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <a href="#" class="brand-wrap">
+      <div class="brand-icon"><i class="fas fa-graduation-cap"></i></div>
+      <div class="brand-text">
+        <h1>Datamites LMS</h1>
+        <span>AI Mock Interview Portal</span>
+      </div>
+    </a>
+    <div class="header-actions">
+      <div class="live-status-chip">
+        <span id="header-pulse-dot" class="pulse-dot"></span>
+        <span id="header-status-text">Ready to connect</span>
+      </div>
+      <a href="javascript:history.back()" id="btn-top-back" class="btn-return-lms">
+        <i class="fas fa-arrow-left"></i> Return to LMS
+      </a>
+    </div>
+  </header>
+
+  <div class="dashboard-container">
+    <div class="dashboard-layout">
+      <aside class="dashboard-sidebar">
+        <div class="candidate-profile-card">
+          <div class="candidate-avatar" id="avatar-initials">CD</div>
+          <div class="candidate-name" id="sidebar-candidate-name">Candidate</div>
+          <div class="candidate-role-badge" id="sidebar-candidate-course">Course</div>
+          <div class="candidate-email" id="sidebar-candidate-email"></div>
+        </div>
+        <div class="sidebar-nav-title">Interview progress</div>
+        <ul class="sidebar-menu">
+          <li><div class="menu-item-btn active" id="nav-btn-check" aria-current="step"><span class="icon-box"><i class="fas fa-sliders-h"></i></span><span>System check</span></div></li>
+          <li><div class="menu-item-btn" id="nav-btn-interview"><span class="icon-box"><i class="fas fa-video"></i></span><span>Live interview room</span></div></li>
+          <li><div class="menu-item-btn" id="nav-btn-report"><span class="icon-box"><i class="fas fa-chart-line"></i></span><span>Evaluation report</span></div></li>
+        </ul>
+      </aside>
+
+      <main class="dashboard-content">
+        <section id="section-check">
+          <div class="content-header">
+            <div class="title">AI mock interview assessment</div>
+            <div class="subtitle">Check the connection, camera, and microphone, then start. Camera issues give a warning. Three camera warnings end the exam. Leaving the tab or the window ends the call immediately.</div>
+          </div>
+          <div class="lms-context-banner">
+            <div class="context-pill"><i class="fas fa-user text-primary"></i><span>Candidate:</span><strong id="banner-candidate-name">—</strong></div>
+            <div class="context-pill"><i class="fas fa-book-reader text-success"></i><span>Course:</span><strong id="banner-candidate-role">—</strong></div>
+            <div class="context-pill" id="pill-mock-id" style="display:none"><i class="fas fa-hashtag text-primary"></i><span>Session:</span><strong id="banner-mock-id">—</strong></div>
+          </div>
+          <div class="action-button-bar">
+            <div class="btn-group">
+              <button type="button" class="btn-sys-check" id="btn-speed"><i class="fas fa-wifi text-primary"></i><span>Check connection</span></button>
+              <button type="button" class="btn-sys-check" id="btn-camera"><i class="fas fa-video text-primary"></i><span>Enable camera</span></button>
+              <button type="button" class="btn-sys-check" id="btn-mic"><i class="fas fa-microphone text-success"></i><span>Enable microphone</span></button>
+            </div>
+          </div>
+          <div class="sys-preview-grid">
+            <div>
+              <div class="camera-preview-box">
+                <div class="camera-live-pill" id="webcam-live-pill"><i class="fas fa-circle" style="font-size:7px"></i> LIVE</div>
+                <video id="check-video" autoplay playsinline muted></video>
+                <div class="camera-placeholder" id="camera-placeholder"><i class="fas fa-video-slash" style="font-size:28px;display:block;margin-bottom:8px;opacity:.5"></i><span>Camera off</span></div>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:8px;display:flex;justify-content:space-between"><span>Webcam</span><span id="cam-status-label" style="font-weight:600">Off</span></div>
+            </div>
+            <div>
+              <div class="telemetry-row">
+                <div>
+                  <div style="font-size:13.5px;font-weight:700"><i class="fas fa-link text-primary mr-1"></i> Interview service</div>
+                  <div id="speed-status-text" style="font-size:12px;color:var(--text-muted);margin-top:2px">Checks that this page can reach the interview service.</div>
+                </div>
+                <span id="speed-metric-badge" class="metric-badge">—</span>
+              </div>
+              <div style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                  <span style="font-size:13.5px;font-weight:700"><i class="fas fa-volume-up text-success mr-1"></i> Microphone</span>
+                  <span id="mic-status-label" style="font-size:12px;font-weight:600;color:var(--text-light)">Off</span>
+                </div>
+                <div style="width:100%;height:16px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:20px;overflow:hidden">
+                  <div id="mic-level-bar" style="height:100%;width:0;background:linear-gradient(90deg,#10b981 0%,#f59e0b 70%,#ef4444 100%)"></div>
+                </div>
+              </div>
+              <button type="button" class="btn-start-primary" id="btn-start"><i class="fas fa-play-circle"></i><span>Start interview</span></button>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-interview" style="display:none">
+          <div class="interview-room-card">
+            <div class="interview-room-header">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="font-size:16px;font-weight:800;color:#fff">Live AI voice session</span>
+                <span class="live-status-chip" style="background:#1e293b;color:#38bdf8;border-color:#334155">
+                  <span class="pulse-dot busy"></span>
+                  <span id="interview-state-text">Connecting</span>
+                </span>
+                <span id="interview-timer" style="font-size:13px;font-weight:700;color:#94a3b8">00:00</span>
+                <span id="strikeLabel" class="live-status-chip strike-chip" style="background:#1e293b;border-color:#334155">Camera warnings 0 / 3</span>
+              </div>
+              <button type="button" class="btn-end-interview" id="btn-end" disabled><i class="fas fa-phone-slash"></i> End interview</button>
+            </div>
+            <div class="interview-grid">
+              <div>
+                <div class="room-video-wrap" id="videoBox">
+                  <video id="room-video" autoplay playsinline muted></video>
+                  <canvas id="overlay"></canvas>
+                  <div id="flagBanner" class="flag-banner"></div>
+                </div>
+                <div class="cv-pill-box">
+                  <div class="cv-row"><span class="k"><i class="fas fa-user mr-1"></i> Faces</span><span id="cv-faces" class="cv-badge">—</span></div>
+                  <div class="cv-row"><span class="k"><i class="fas fa-eye mr-1"></i> Gaze</span><span id="cv-gaze" class="cv-badge">—</span></div>
+                  <div class="cv-row"><span class="k"><i class="fas fa-shield-alt mr-1"></i> Integrity</span><span id="cv-status" class="cv-badge">—</span></div>
+                </div>
+              </div>
+              <div class="chat-container">
+                <div class="chat-header"><i class="fas fa-comments mr-1"></i> Live conversation</div>
+                <div class="chat-messages" id="chat-messages-box">
+                  <div class="stage-pill" id="chat-empty">Conversation appears here once the interviewer speaks.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="section-report" style="display:none">
+          <div class="report-card-container">
+            <div class="report-head-bar">
+              <div>
+                <h3 style="font-size:20px;font-weight:800"><i class="fas fa-award text-primary mr-1"></i> Interview performance</h3>
+                <div id="report-meta-subtitle" style="font-size:13px;color:var(--text-muted);margin-top:4px">The report is created when the interview ends.</div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button type="button" class="btn-sys-check" id="btn-json"><i class="fas fa-download mr-1"></i> JSON</button>
+                <button type="button" class="btn-sys-check" id="btn-print"><i class="fas fa-print mr-1"></i> Print</button>
+              </div>
+            </div>
+            <div class="score-banner">
+              <div class="score-circle" id="report-overall-score">—</div>
+              <div>
+                <div style="font-size:16px;font-weight:800">Overall interview score</div>
+                <div id="report-score-summary" style="font-size:13px;color:var(--text-muted);margin-top:2px">Shown when an evaluation is available.</div>
+              </div>
+            </div>
+            <div class="report-stat-grid">
+              <div class="report-stat-box"><div class="num" id="stat-questions">—</div><div class="lbl">Questions</div></div>
+              <div class="report-stat-box"><div class="num" id="stat-duration">—</div><div class="lbl">Duration</div></div>
+              <div class="report-stat-box"><div class="num" id="stat-turns">—</div><div class="lbl">Candidate turns</div></div>
+              <div class="report-stat-box"><div class="num" id="stat-interviewer">—</div><div class="lbl">Interviewer turns</div></div>
+            </div>
+            <div id="report-eval-block" style="background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:22px">
+              <h4 style="font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px">Evaluator remarks</h4>
+              <p id="report-summary-text" style="font-size:13.5px;color:#334155">Waiting for the interview to finish.</p>
+              <div id="report-extra" style="margin-top:10px;font-size:13px"></div>
+            </div>
+            <h4 style="font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px">Transcript</h4>
+            <pre id="report-transcript-pre" style="background:#0b1220;color:#e2e8f0;border-radius:10px;padding:16px;font-size:12.5px;max-height:280px;overflow:auto;white-space:pre-wrap"></pre>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="screenAlert" class="screen-alert" hidden>
+    <strong>Exam warning</strong>
+    <span id="screenAlertText"></span>
+  </div>
+  <div id="violationOverlay" class="violation" hidden>
+    <div class="violation-card">
+      <h2>Exam stopped because of a violation</h2>
+      <p id="violationDetail"></p>
+    </div>
+  </div>
+  <audio id="remoteAudio" autoplay></audio>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const pcId = crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+    const MAX_WARNINGS = 3;
+    const WARN_COOLDOWN_MS = 12000;
+    const SUSTAIN_MS = 1800;
+    const CLEAR_MS = 1000;
+
+    let cameraStream = null;
+    let micStream = null;
+    let audioContext = null;
+    let pc = null;
+    let ws = null;
+    let currentInterviewId = null;
+    let cvTimer = null;
+    let cvBusy = false;
+    let interviewTimer = null;
+    let interviewSeconds = 0;
+    let lastAssistantEl = null;
+    let interimEl = null;
+    let lastReport = null;
+    let ending = false;
+    let examLive = false;
+    let stoppedForViolation = false;
+    let leaveArmedAt = 0;
+    let warningCount = 0;
+    let enteredFullscreen = false;
+    let examStartedAt = 0;
+    let endLogged = false;
+    let leaveType = "";
+    const openIssues = {};
+    const violationMessages = [];
+    const lastWarnAt = {};
+    const badSince = {};
+    const clearSince = {};
+    const checks = { connection: false, camera: false, mic: false };
+
+    function linkContext() {
+      const params = new URLSearchParams(location.search);
+      const pick = (...keys) => {
+        for (const key of keys) {
+          const value = (params.get(key) || "").trim();
+          if (value) return value.slice(0, 200);
+        }
+        return "";
+      };
+      const name = pick("name", "candidate_name", "candidate", "full_name");
+      const course = pick("course", "course_name", "coursename") || pick("role");
+      const used = new Set(["name", "candidate_name", "candidate", "full_name", "course", "course_name", "coursename", "role"]);
+      const extra = {};
+      for (const [rawKey, rawValue] of params) {
+        const key = rawKey.trim();
+        if (!/^[A-Za-z][A-Za-z0-9_]{0,40}$/.test(key)) continue;
+        if (used.has(key.toLowerCase()) || /token|secret|password|api_?key|^key$/i.test(key)) continue;
+        const value = rawValue.trim().slice(0, 200);
+        if (value) extra[key] = value;
+      }
+      if (course) extra.course = course;
+      return {
+        name: name || "Candidate",
+        course: course || "Data Science",
+        email: pick("email"),
+        mockId: pick("mock_id", "session_id"),
+        returnUrl: pick("return_url"),
+        extra
+      };
+    }
+    const context = linkContext();
+
+    function initials(name) {
+      return name.split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "CA";
+    }
+    $("sidebar-candidate-name").textContent = context.name;
+    $("banner-candidate-name").textContent = context.name;
+    $("sidebar-candidate-course").textContent = context.course;
+    $("banner-candidate-role").textContent = context.course;
+    $("sidebar-candidate-email").textContent = context.email;
+    $("avatar-initials").textContent = initials(context.name);
+    if (context.mockId) {
+      $("banner-mock-id").textContent = context.mockId;
+      $("pill-mock-id").style.display = "flex";
+    }
+    if (context.returnUrl) $("btn-top-back").href = context.returnUrl;
+
+    function homeUrl() {
+      const url = (context.returnUrl || "").trim();
+      if (/^https?:\/\//i.test(url)) return url;
+      if (url.startsWith("/") && !url.startsWith("//")) return url;
+      return "/";
+    }
+
+    const STEP_ORDER = ["check", "interview", "report"];
+    function showTab(tab) {
+      const current = STEP_ORDER.indexOf(tab);
+      STEP_ORDER.forEach((name, index) => {
+        $("section-" + name).style.display = name === tab ? "block" : "none";
+        const item = $("nav-btn-" + name);
+        item.classList.toggle("active", name === tab);
+        item.classList.toggle("done", index < current);
+        if (name === tab) item.setAttribute("aria-current", "step");
+        else item.removeAttribute("aria-current");
+      });
+    }
+
+    function setHeader(text, kind) {
+      $("header-status-text").textContent = text;
+      $("header-pulse-dot").className = "pulse-dot" + (kind ? " " + kind : "");
+    }
+
+    async function checkConnection() {
+      const btn = $("btn-speed");
+      const badge = $("speed-metric-badge");
+      btn.disabled = true;
+      badge.textContent = "Checking";
+      const started = performance.now();
+      try {
+        const response = await fetch("/healthz?t=" + Date.now(), { cache: "no-store" });
+        if (!response.ok) throw new Error("status " + response.status);
+        const ms = Math.round(performance.now() - started);
+        checks.connection = true;
+        badge.textContent = ms + " ms";
+        badge.className = "metric-badge ok";
+        $("speed-status-text").textContent = "Interview service reachable (" + ms + " ms).";
+        btn.classList.add("passed");
+        btn.innerHTML = '<i class="fas fa-check-circle"></i><span>Connection verified</span>';
+      } catch (err) {
+        checks.connection = false;
+        badge.textContent = "Failed";
+        badge.className = "metric-badge bad";
+        $("speed-status-text").textContent = "Could not reach the interview service.";
+      }
+      btn.disabled = false;
+    }
+
+    async function enableCamera() {
+      const btn = $("btn-camera");
+      btn.disabled = true;
+      try {
+        if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        const video = $("check-video");
+        video.srcObject = cameraStream;
+        video.style.display = "block";
+        $("camera-placeholder").style.display = "none";
+        $("webcam-live-pill").style.display = "inline-flex";
+        checks.camera = true;
+        btn.classList.add("passed");
+        btn.innerHTML = '<i class="fas fa-check-circle"></i><span>Camera active</span>';
+        $("cam-status-label").textContent = "On";
+        $("cam-status-label").style.color = "#15803d";
+      } catch (err) {
+        checks.camera = false;
+        alert("Camera permission is required for the exam.");
+      }
+      btn.disabled = false;
+    }
+
+    async function enableMicrophone() {
+      const btn = $("btn-mic");
+      btn.disabled = true;
+      try {
+        if (micStream) micStream.getTracks().forEach(track => track.stop());
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === "suspended") await audioContext.resume();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        audioContext.createMediaStreamSource(micStream).connect(analyser);
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const paint = () => {
+          if (!micStream) return;
+          analyser.getByteFrequencyData(data);
+          const avg = data.reduce((sum, n) => sum + n, 0) / data.length;
+          $("mic-level-bar").style.width = Math.min(100, Math.round(avg / 1.28)) + "%";
+          requestAnimationFrame(paint);
+        };
+        paint();
+        checks.mic = true;
+        btn.classList.add("passed");
+        btn.innerHTML = '<i class="fas fa-check-circle"></i><span>Microphone active</span>';
+        $("mic-status-label").textContent = "On";
+        $("mic-status-label").style.color = "#15803d";
+      } catch (err) {
+        checks.mic = false;
+        alert("Microphone permission is required for the exam.");
+      }
+      btn.disabled = false;
+    }
+
+    function clearChat() {
+      $("chat-messages-box").innerHTML = "";
+      lastAssistantEl = null;
+      interimEl = null;
+    }
+    function appendBubble(role, text, interim) {
+      const box = $("chat-messages-box");
+      const empty = $("chat-empty");
+      if (empty) empty.remove();
+      const div = document.createElement("div");
+      div.className = "chat-bubble " + (role === "user" ? "user" : "assistant") + (interim ? " interim" : "");
+      const who = document.createElement("span");
+      who.className = "who";
+      who.textContent = role === "user" ? "Candidate" : "Interviewer";
+      const body = document.createElement("span");
+      body.textContent = text;
+      div.appendChild(who);
+      div.appendChild(body);
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return { div, body };
+    }
+    function onUserTranscription(payload) {
+      const text = (payload.text || "").trim();
+      if (payload.final) {
+        if (interimEl) { interimEl.div.remove(); interimEl = null; }
+        if (text) appendBubble("user", text, false);
+        lastAssistantEl = null;
+      } else if (text) {
+        if (!interimEl) interimEl = appendBubble("user", text, true);
+        else interimEl.body.textContent = text;
+      }
+    }
+    function onBotText(payload) {
+      const text = payload.text || "";
+      if (!text) return;
+      if (lastAssistantEl) lastAssistantEl.body.textContent += text;
+      else lastAssistantEl = appendBubble("assistant", text, false);
+      $("chat-messages-box").scrollTop = $("chat-messages-box").scrollHeight;
+    }
+    function addStage(name) {
+      const box = $("chat-messages-box");
+      const span = document.createElement("span");
+      span.className = "stage-pill";
+      span.textContent = name;
+      box.appendChild(span);
+    }
+
+    function recordFlag(kind, type, message, warningNumber, state) {
+      if (!currentInterviewId) return;
+      const payload = JSON.stringify({
+        kind: kind,
+        type: type,
+        message: message,
+        state: state || "",
+        elapsed_ms: examStartedAt ? Date.now() - examStartedAt : 0,
+        warning_number: warningNumber || 0
+      });
+      const url = "/api/interviews/" + currentInterviewId + "/flags";
+      const blob = new Blob([payload], { type: "application/json" });
+      if (navigator.sendBeacon && navigator.sendBeacon(url, blob)) return;
+      fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => {});
+    }
+    function syncOpenFlags(active) {
+      Object.keys(active).forEach(type => {
+        if (!openIssues[type]) {
+          openIssues[type] = active[type];
+          recordFlag("camera", type, active[type], 0, "on");
+        }
+      });
+      Object.keys(openIssues).forEach(type => {
+        if (active[type] || !openIssues[type] || badSince[type]) return;
+        recordFlag("camera", type, "Cleared: " + openIssues[type], 0, "off");
+        delete openIssues[type];
+      });
+    }
+    function paintStrikes() {
+      const el = $("strikeLabel");
+      el.textContent = "Camera warnings " + warningCount + " / " + MAX_WARNINGS;
+      el.classList.toggle("hot", warningCount > 0);
+    }
+    function clearFlag() {
+      document.body.classList.remove("exam-alert");
+      $("videoBox").classList.remove("flagged");
+      $("flagBanner").textContent = "";
+      $("screenAlert").hidden = true;
+      $("screenAlertText").textContent = "";
+    }
+    function showFlag(message) {
+      document.body.classList.add("exam-alert");
+      $("videoBox").classList.add("flagged");
+      $("flagBanner").textContent = message;
+      $("screenAlertText").textContent = message;
+      $("screenAlert").hidden = false;
+    }
+    function raiseWarning(type, message) {
+      if (!examLive || stoppedForViolation) return;
+      const now = Date.now();
+      if (lastWarnAt[type] && now - lastWarnAt[type] < WARN_COOLDOWN_MS) {
+        showFlag(message);
+        return;
+      }
+      lastWarnAt[type] = now;
+      warningCount += 1;
+      violationMessages.push(message);
+      const warningText = "Warning " + warningCount + " of " + MAX_WARNINGS + " — " + message;
+      recordFlag("warning", type, warningText, warningCount, "on");
+      showFlag(warningText);
+      paintStrikes();
+      if (warningCount >= MAX_WARNINGS) stopForViolation();
+    }
+    function sustainIssue(type, message, active) {
+      if (!examLive || stoppedForViolation) return;
+      const now = Date.now();
+      if (active) {
+        showFlag(message);
+        delete clearSince[type];
+        if (!badSince[type]) badSince[type] = now;
+        if (now - badSince[type] >= SUSTAIN_MS) {
+          raiseWarning(type, message);
+          badSince[type] = now + WARN_COOLDOWN_MS;
+        }
+        return;
+      }
+      if (!badSince[type]) return;
+      if (!clearSince[type]) clearSince[type] = now;
+      if (now - clearSince[type] >= CLEAR_MS) {
+        delete badSince[type];
+        delete clearSince[type];
+      }
+    }
+    function stopForViolation() {
+      if (stoppedForViolation || ending) return;
+      stoppedForViolation = true;
+      examLive = false;
+      endInterview();
+    }
+    function endForLeaving(message, type) {
+      if (!examLive || ending || Date.now() < leaveArmedAt) return;
+      stoppedForViolation = true;
+      examLive = false;
+      leaveType = type;
+      violationMessages.push(message);
+      recordFlag("leave", type, message, warningCount, "on");
+      endInterview();
+    }
+    function stopCallOnServer() {
+      if (!currentInterviewId) return;
+      if (!endLogged) {
+        endLogged = true;
+        recordFlag("end", "closed", "The exam page was closed", warningCount, "on");
+      }
+      examLive = false;
+      try { if (pc) pc.close(); } catch (err) {}
+      try { if (ws && ws.readyState === WebSocket.OPEN) ws.close(); } catch (err) {}
+      const url = "/api/interviews/" + currentInterviewId + "/end";
+      if (navigator.sendBeacon) navigator.sendBeacon(url);
+      else fetch(url, { method: "POST", keepalive: true }).catch(() => {});
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) endForLeaving("You left the exam tab", "tab");
+    });
+    window.addEventListener("pagehide", stopCallOnServer);
+    window.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!examLive || ending || document.hidden || document.hasFocus()) return;
+        endForLeaving("The exam window lost focus", "blur");
+      }, 250);
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (examLive && enteredFullscreen && !document.fullscreenElement) endForLeaving("You left fullscreen", "fullscreen");
+    });
+
+    function badge(el, text, kind) {
+      el.textContent = text;
+      el.className = "cv-badge" + (kind && kind !== "good" ? " " + kind : "");
+    }
+    function drawBoxes(analysis, frameW, frameH) {
+      const canvas = $("overlay");
+      const video = $("room-video");
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.clientWidth || frameW;
+      canvas.height = video.clientHeight || frameH;
+      const sx = canvas.width / frameW;
+      const sy = canvas.height / frameH;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 2;
+      ctx.font = "12px Inter, sans-serif";
+      (analysis.faces_analysis || []).forEach(face => {
+        const [x, y, w, h] = face.bbox || [0, 0, 0, 0];
+        const bad = face.status === "potential_breach" || face.status === "unknown_person" || (analysis.faces_detected || 0) > 1;
+        ctx.strokeStyle = bad ? "#ef4444" : "#22c55e";
+        ctx.strokeRect(x * sx, y * sy, w * sx, h * sy);
+      });
+    }
+    function reviewVision(analysis) {
+      const faces = analysis.faces_detected ?? 0;
+      const metrics = analysis.integrity_metrics || {};
+      const gaze = (analysis.gaze_analysis_per_face || [])[0] || {};
+      const direction = gaze.gaze_direction || "";
+      const lookingAway = ["looking_left", "looking_right", "looking_up", "looking_down"].includes(direction);
+      const multi = faces > 1 || metrics.multiple_faces === true;
+      const noFace = faces === 0;
+      const frozen = metrics.motion_consistent === false;
+      badge($("cv-faces"), String(faces), faces === 1 ? "good" : "bad");
+      badge($("cv-gaze"), gaze.gaze_description || direction || "—", lookingAway || noFace ? "bad" : "good");
+      badge($("cv-status"), multi || lookingAway || noFace || frozen ? "Warning" : "Normal", multi || lookingAway || noFace || frozen ? "bad" : "good");
+      const active = {};
+      if (multi) active.faces = "More than one face detected";
+      if (noFace) active.noface = "No face detected";
+      if (lookingAway) active.gaze = "Looking away from the screen";
+      if (frozen) active.motion = "The camera image looks frozen";
+      syncOpenFlags(active);
+      sustainIssue("faces", "More than one face detected", multi);
+      sustainIssue("noface", "No face detected", noFace);
+      sustainIssue("gaze", "Looking away from the screen", lookingAway);
+      sustainIssue("motion", "The camera image looks frozen", frozen);
+      const holding = Object.keys(badSince).some(type => !clearSince[type] || (Date.now() - clearSince[type]) < CLEAR_MS);
+      if (!multi && !noFace && !lookingAway && !frozen && !holding && examLive && !stoppedForViolation) clearFlag();
+    }
+
+    function startVision() {
+      const video = $("room-video");
+      const canvas = document.createElement("canvas");
+      if (cvTimer) clearInterval(cvTimer);
+      cvTimer = setInterval(async () => {
+        if (cvBusy || !video.videoWidth || !examLive) return;
+        cvBusy = true;
+        try {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+          const frame = canvas.toDataURL("image/jpeg", 0.6).split(",")[1];
+          const response = await fetch("/api/vision/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ frame_data: frame, session_id: currentInterviewId || "demo" })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.success && data.analysis) {
+              drawBoxes(data.analysis, canvas.width, canvas.height);
+              reviewVision(data.analysis);
+            }
+          }
+        } catch (err) {}
+        cvBusy = false;
+      }, 350);
+    }
+
+    function armExam() {
+      examLive = true;
+      stoppedForViolation = false;
+      examStartedAt = Date.now();
+      endLogged = false;
+      leaveType = "";
+      Object.keys(openIssues).forEach(key => delete openIssues[key]);
+      warningCount = 0;
+      enteredFullscreen = false;
+      violationMessages.length = 0;
+      Object.keys(lastWarnAt).forEach(key => delete lastWarnAt[key]);
+      Object.keys(badSince).forEach(key => delete badSince[key]);
+      Object.keys(clearSince).forEach(key => delete clearSince[key]);
+      leaveArmedAt = Date.now() + 1500;
+      $("violationOverlay").hidden = true;
+      clearFlag();
+      paintStrikes();
+      document.documentElement.requestFullscreen?.().then(() => { enteredFullscreen = true; }).catch(() => {});
+      recordFlag("start", "start", "Interview started", 0, "on");
+    }
+
+    async function startInterview() {
+      if (!checks.connection) { alert("Check the connection first."); return; }
+      if (!checks.camera || !cameraStream) { alert("Enable the camera first."); return; }
+      if (!checks.mic || !micStream) { alert("Enable the microphone first."); return; }
+      const btn = $("btn-start");
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Connecting</span>';
+      showTab("interview");
+      setHeader("Live session", "busy");
+      $("room-video").srcObject = cameraStream;
+      clearChat();
+      interviewSeconds = 0;
+      if (interviewTimer) clearInterval(interviewTimer);
+      interviewTimer = setInterval(() => {
+        interviewSeconds += 1;
+        const minutes = String(Math.floor(interviewSeconds / 60)).padStart(2, "0");
+        const seconds = String(interviewSeconds % 60).padStart(2, "0");
+        $("interview-timer").textContent = minutes + ":" + seconds;
+      }, 1000);
+      try {
+        const response = await fetch("/api/interviews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            candidate_name: context.name,
+            role: context.course,
+            course: context.course,
+            extra_context: context.extra
+          })
+        });
+        if (!response.ok) throw new Error(await response.text());
+        const cfg = await response.json();
+        currentInterviewId = cfg.interview_id;
+        armExam();
+        pc = new RTCPeerConnection({ iceServers: cfg.ice_servers || [] });
+        micStream.getAudioTracks().forEach(track => pc.addTrack(track, micStream));
+        pc.ontrack = (event) => { $("remoteAudio").srcObject = event.streams[0]; };
+        pc.onconnectionstatechange = () => {
+          if (pc && pc.connectionState === "connected") $("interview-state-text").textContent = "Connected";
+        };
+        pc.onicecandidate = (event) => {
+          if (!ws || ws.readyState !== WebSocket.OPEN) return;
+          ws.send(JSON.stringify({
+            type: "ice-candidate",
+            payload: {
+              pc_id: pcId,
+              candidate: event.candidate ? {
+                candidate: event.candidate.candidate,
+                sdpMid: event.candidate.sdpMid,
+                sdpMLineIndex: event.candidate.sdpMLineIndex
+              } : null
+            }
+          }));
+        };
+        ws = new WebSocket(cfg.signaling_url);
+        ws.onopen = async () => {
+          const offer = await pc.createOffer({ offerToReceiveAudio: true });
+          await pc.setLocalDescription(offer);
+          ws.send(JSON.stringify({ type: "offer", payload: { pc_id: pcId, sdp: offer.sdp, type: offer.type, call_context_vars: {} } }));
+          $("btn-end").disabled = false;
+          $("interview-state-text").textContent = "Connecting";
+        };
+        ws.onmessage = async (event) => {
+          let msg;
+          try { msg = JSON.parse(event.data); } catch { return; }
+          const type = msg.type;
+          const payload = msg.payload || {};
+          if (type === "answer") await pc.setRemoteDescription({ type: "answer", sdp: payload.sdp });
+          else if (type === "ice-candidate" && payload.candidate) {
+            try { await pc.addIceCandidate(payload.candidate); } catch (err) {}
+          } else if (type === "rtf-user-transcription") onUserTranscription(payload);
+          else if (type === "rtf-bot-text") onBotText(payload);
+          else if (type === "rtf-node-transition") {
+            lastAssistantEl = null;
+            if (payload.node_name) addStage(payload.node_name);
+          } else if (type === "rtf-pipeline-error" || type === "error") {
+            $("interview-state-text").textContent = "Agent error";
+            recordFlag("agent", "agent", "The voice agent reported an error", warningCount, "on");
+          } else if (type === "call-ended") {
+            leaveType = leaveType || "call-ended";
+            endInterview();
+          }
+        };
+        startVision();
+      } catch (err) {
+        examLive = false;
+        alert("Could not start the interview. " + err.message);
+        showTab("check");
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play-circle"></i><span>Start interview</span>';
+      }
+    }
+
+    function stopMedia() {
+      examLive = false;
+      if (cvTimer) { clearInterval(cvTimer); cvTimer = null; }
+      if (interviewTimer) { clearInterval(interviewTimer); interviewTimer = null; }
+      try { if (pc) pc.close(); } catch (err) {}
+      try { if (ws && ws.readyState === WebSocket.OPEN) ws.close(); } catch (err) {}
+      pc = null;
+      ws = null;
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    }
+
+    async function endInterview() {
+      if (ending) return;
+      ending = true;
+      examLive = false;
+      if (!endLogged) {
+        endLogged = true;
+        const endType = leaveType || (stoppedForViolation ? "violation" : "candidate");
+        const endMessage = leaveType === "call-ended"
+          ? "The voice call ended"
+          : (stoppedForViolation && !leaveType ? "Exam stopped after 3 camera warnings" : "Interview ended");
+        recordFlag("end", endType, endMessage, warningCount, "on");
+      }
+      clearFlag();
+      $("violationOverlay").hidden = true;
+      $("btn-end").disabled = true;
+      const interviewId = currentInterviewId;
+      stopMedia();
+      if (interviewId) {
+        const endCall = fetch("/api/interviews/" + interviewId + "/end", { method: "POST" }).catch(() => {});
+        const timeout = new Promise(resolve => setTimeout(resolve, 2000));
+        await Promise.race([endCall, timeout]);
+      }
+      window.location.replace(homeUrl());
+    }
+
+    function transcriptText(transcript) {
+      if (!transcript) return "";
+      if (typeof transcript === "string") return transcript;
+      if (!Array.isArray(transcript)) return "";
+      return transcript.map(item => {
+        const role = item.role === "user" ? "Candidate" : "Interviewer";
+        return role + ": " + (item.text || item.content || "");
+      }).join("\n");
+    }
+    function renderReport(report) {
+      const stats = report.stats || {};
+      $("report-meta-subtitle").textContent = (report.candidate_name || context.name) + " · " + (report.role || context.course);
+      $("stat-questions").textContent = stats.questions_asked ?? "—";
+      $("stat-turns").textContent = stats.candidate_turns ?? "—";
+      $("stat-interviewer").textContent = stats.interviewer_turns ?? "—";
+      const seconds = stats.duration_seconds;
+      $("stat-duration").textContent = seconds == null ? "—" : Math.floor(seconds / 60) + "m " + (seconds % 60) + "s";
+      const ai = report.ai_evaluation || {};
+      const evaluation = ai.evaluation || {};
+      const score = evaluation.overall_score;
+      $("report-overall-score").textContent = score == null ? "—" : String(Math.round(score));
+      $("report-score-summary").textContent = evaluation.summary || ai.detail || "No evaluation text was returned.";
+      $("report-summary-text").textContent = evaluation.summary || ai.detail || ai.raw || "No evaluation text was returned.";
+      const extra = $("report-extra");
+      extra.textContent = "";
+      ["strengths", "weaknesses"].forEach(key => {
+        if (Array.isArray(evaluation[key]) && evaluation[key].length) {
+          const line = document.createElement("div");
+          line.textContent = key[0].toUpperCase() + key.slice(1) + ": " + evaluation[key].join("; ");
+          extra.appendChild(line);
+        }
+      });
+      $("report-transcript-pre").textContent = transcriptText(report.transcript) || "No transcript yet.";
+    }
+
+    $("btn-speed").onclick = checkConnection;
+    $("btn-camera").onclick = enableCamera;
+    $("btn-mic").onclick = enableMicrophone;
+    $("btn-start").onclick = startInterview;
+    $("btn-end").onclick = () => { stoppedForViolation = false; endInterview(); };
+    $("btn-print").onclick = () => window.print();
+    $("btn-json").onclick = () => {
+      if (!lastReport) return;
+      const blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: "application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "interview_report.json";
+      link.click();
+    };
+  </script>
+</body>
+</html>

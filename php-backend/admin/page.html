@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interview admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #4f46e5; --bg: #f8fafc; --text: #0f172a; --muted: #64748b; --line: #e2e8f0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, sans-serif; background: var(--bg); color: var(--text); }
+    header { background: #fff; border-bottom: 1px solid var(--line); padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    h1 { margin: 0; font-size: 18px; }
+    header p { margin: 2px 0 0; color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    main { max-width: 980px; margin: 28px auto; padding: 0 16px 40px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+    input { width: 100%; max-width: 420px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+    button { border: 0; border-radius: 8px; padding: 10px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+    .primary { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; }
+    .ghost { background: #fff; color: var(--muted); border: 1px solid var(--line); }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { background: #fff; border: 1px solid var(--line); color: var(--muted); }
+    .tab.active { background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; border-color: transparent; }
+    .row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+    .row:last-child { border-bottom: 0; }
+    .name { font-weight: 700; }
+    .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .badge { display: inline-block; background: #e0e7ff; color: #3730a3; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; }
+    .badge.live { background: #dcfce7; color: #166534; }
+    .badge.warn { background: #fee2e2; color: #991b1b; }
+    .badge.cam { background: #ffedd5; color: #9a3412; }
+    .badge.talk { background: #e0f2fe; color: #075985; }
+    .badge.system { background: #e2e8f0; color: #334155; }
+    .timeline { position: relative; margin-top: 8px; max-height: 480px; overflow: auto; }
+    .tl.current { background: #eef2ff; border-radius: 8px; }
+    .replay-layout { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-top: 12px; }
+    #replay-audio { width: min(100%, 520px); margin-top: 12px; }
+    #replay-frame { width: min(100%, 360px); height: 220px; object-fit: cover; background: #0f172a; border-radius: 10px; }
+    #replay-now { font-weight: 700; min-height: 1.4em; margin-bottom: 8px; }
+    .tl { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+    .tl-time { width: 54px; flex: none; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; font-weight: 700; }
+    .tl-text { margin-top: 3px; white-space: pre-wrap; }
+    .audio-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+    .audio-row label { margin-bottom: 4px; }
+    audio { width: min(100%, 360px); }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .stat { flex: 1; min-width: 180px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    .stat b { display: block; font-size: 22px; margin-top: 4px; }
+    .error { color: #b91c1c; font-size: 14px; }
+    .ok { color: #166534; font-size: 14px; }
+    .note { color: var(--muted); font-size: 13px; }
+    .field { margin-bottom: 14px; }
+    pre { white-space: pre-wrap; background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px; font-size: 13px; margin: 8px 0 0; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Datamites LMS</h1>
+      <p>Mock interview admin</p>
+    </div>
+    <button type="button" class="ghost" id="logout" hidden>Sign out</button>
+  </header>
+  <main>
+    <section class="card" id="login-card">
+      <label for="password">Admin password</label>
+      <input id="password" type="password" autocomplete="current-password" />
+      <div style="margin-top:12px"><button type="button" class="primary" id="login">Sign in</button></div>
+      <p class="error" id="login-error"></p>
+    </section>
+    <section id="panel" hidden>
+      <div class="tabs">
+        <button type="button" class="tab active" id="tab-settings">Connection settings</button>
+        <button type="button" class="tab" id="tab-interviews">Interviews</button>
+      </div>
+      <div class="stats">
+        <div class="stat">Active workflow<b id="active-name">—</b><span class="meta" id="active-id"></span></div>
+        <div class="stat">Interviews running now<b id="running">—</b><span class="meta">Calls the interview service still has open</span></div>
+      </div>
+      <div id="settings-panel">
+        <div class="card">
+          <h2 style="margin:0 0 6px;font-size:16px">Dograh workflow</h2>
+          <p class="note">New interviews use this workflow. One that has already started keeps the workflow it began with.</p>
+          <div class="field">
+            <label for="workflow-id">Workflow id</label>
+            <input id="workflow-id" inputmode="numeric" />
+          </div>
+          <button type="button" class="primary" id="save-workflow">Save workflow id</button>
+          <p class="error" id="workflow-error"></p>
+          <p class="ok" id="workflow-ok"></p>
+          <div id="workflow-list"></div>
+        </div>
+        <div class="card">
+          <h2 style="margin:0 0 6px;font-size:16px">Metered TURN</h2>
+          <p class="note">The API key stays on the server. Leave the key blank to keep the one already saved. A new interview picks up the change immediately.</p>
+          <div class="field">
+            <label for="metered-domain">Domain</label>
+            <input id="metered-domain" autocomplete="off" placeholder="yourapp.metered.live" />
+          </div>
+          <div class="field">
+            <label for="metered-key">API key</label>
+            <input id="metered-key" type="password" autocomplete="new-password" />
+            <div class="meta" id="metered-hint"></div>
+          </div>
+          <button type="button" class="primary" id="save-metered">Save Metered credentials</button>
+          <p class="error" id="metered-error"></p>
+          <p class="ok" id="metered-ok"></p>
+        </div>
+      </div>
+      <div id="interviews-panel" hidden>
+        <div class="card" id="monitor" hidden>
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+            <h2 style="margin:0;font-size:16px">Live monitor</h2>
+            <button type="button" class="ghost" id="monitor-close">Close</button>
+          </div>
+          <p class="note">This watches the call from outside. It does not join the voice connection, so the interview keeps going. You see the camera frames already used for proctoring, and the transcript Dograh is recording.</p>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+            <img id="monitor-frame" alt="Live camera" style="width:min(100%,420px);height:280px;object-fit:cover;background:#0f172a;border-radius:10px" />
+            <div>
+              <div class="name" id="monitor-name">—</div>
+              <div class="meta" id="monitor-meta"></div>
+              <div class="meta" id="monitor-vision"></div>
+            </div>
+          </div>
+          <pre id="monitor-transcript"></pre>
+        </div>
+        <div class="card" id="trace" hidden>
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+            <h2 style="margin:0;font-size:16px">Replay</h2>
+            <button type="button" class="ghost" id="trace-close">Close</button>
+          </div>
+          <div class="name" id="trace-name" style="margin-top:10px">—</div>
+          <div class="meta" id="trace-meta"></div>
+          <p class="note" id="trace-note"></p>
+          <audio id="replay-audio" controls preload="metadata"></audio>
+          <div class="replay-layout">
+            <img id="replay-frame" alt="Camera at this moment" hidden />
+            <div style="flex:1;min-width:220px">
+              <div id="replay-now"></div>
+              <div class="audio-row" id="trace-audio"></div>
+            </div>
+          </div>
+          <div class="timeline" id="trace-timeline"></div>
+        </div>
+        <div class="card">
+          <h2 style="margin:0 0 6px;font-size:16px">Running and recent interviews</h2>
+          <p class="note">Replay plays the saved call and moves through the transcript and flags with it.</p>
+          <div id="interview-list"></div>
+          <p class="error" id="interview-error"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let interviewTimer = null;
+    let watchId = null;
+    let watchTimer = null;
+    let traceId = null;
+    let traceTimer = null;
+    let traceAudioKey = "";
+    let replayOrigin = 0;
+    let replayCurrent = null;
+    let replayFrame = "";
+    let replayBound = false;
+
+    async function login() {
+      $("login-error").textContent = "";
+      const response = await fetch("/my-admin-page/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: $("password").value })
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        $("login-error").textContent = body.detail || "Could not sign in.";
+        return;
+      }
+      $("password").value = "";
+      load();
+    }
+
+    function showTab(name) {
+      const settings = name === "settings";
+      $("settings-panel").hidden = !settings;
+      $("interviews-panel").hidden = settings;
+      $("tab-settings").classList.toggle("active", settings);
+      $("tab-interviews").classList.toggle("active", !settings);
+      if (!settings) loadInterviews();
+    }
+
+    function render(data) {
+      $("login-card").hidden = true;
+      $("panel").hidden = false;
+      $("logout").hidden = false;
+      $("active-name").textContent = data.workflow_name || ("Workflow " + data.workflow_id);
+      $("active-id").textContent = "ID " + data.workflow_id;
+      $("workflow-id").value = data.workflow_id || "";
+      $("running").textContent = String(data.running ?? 0);
+      const metered = data.metered || {};
+      $("metered-domain").value = metered.domain || "";
+      $("metered-hint").textContent = metered.key_hint ? ("Current key " + metered.key_hint) : "No API key saved yet.";
+      const list = $("workflow-list");
+      list.textContent = "";
+      if (data.workflows_error) {
+        const err = document.createElement("p");
+        err.className = "error";
+        err.textContent = data.workflows_error;
+        list.appendChild(err);
+      }
+      (data.workflows || []).forEach(workflow => {
+        const row = document.createElement("div");
+        row.className = "row";
+        const text = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = workflow.name;
+        if (workflow.id === data.workflow_id) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = " In use";
+          name.appendChild(badge);
+        }
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = "ID " + workflow.id + (workflow.status ? " · " + workflow.status : "");
+        text.appendChild(name);
+        text.appendChild(meta);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = workflow.id === data.workflow_id ? "ghost" : "primary";
+        button.textContent = workflow.id === data.workflow_id ? "Current" : "Use this id";
+        button.disabled = workflow.id === data.workflow_id;
+        button.onclick = () => saveWorkflow(workflow.id);
+        row.appendChild(text);
+        row.appendChild(button);
+        list.appendChild(row);
+      });
+    }
+
+    function renderInterviews(rows) {
+      const list = $("interview-list");
+      list.textContent = "";
+      if (!rows.length) {
+        list.textContent = "No interviews yet.";
+        return;
+      }
+      rows.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.style.alignItems = "flex-start";
+        row.style.flexDirection = "column";
+        const head = document.createElement("div");
+        head.style.display = "flex";
+        head.style.justifyContent = "space-between";
+        head.style.width = "100%";
+        head.style.gap = "12px";
+        const text = document.createElement("div");
+        const name = document.createElement("div");
+        name.className = "name";
+        name.textContent = item.candidate_name || "Candidate";
+        const badge = document.createElement("span");
+        badge.className = "badge" + (item.live ? " live" : "");
+        badge.textContent = item.live ? " Running" : " " + (item.status || "ended");
+        name.appendChild(badge);
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const warnings = item.warning_count ? " · " + item.warning_count + " camera warning" + (item.warning_count === 1 ? "" : "s") : "";
+        meta.textContent = (item.role || "Course") + " · run " + (item.workflow_run_id || "—") + " · " + (item.created_at || "") + warnings;
+        text.appendChild(name);
+        text.appendChild(meta);
+        const actions = document.createElement("div");
+        actions.style.display = "flex";
+        actions.style.gap = "8px";
+        if (item.live) {
+          const watch = document.createElement("button");
+          watch.type = "button";
+          watch.className = "primary";
+          watch.textContent = "Monitor";
+          watch.onclick = () => startWatch(item.interview_id);
+          actions.appendChild(watch);
+        }
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ghost";
+        button.textContent = "Replay";
+        button.onclick = () => startTrace(item.interview_id);
+        actions.appendChild(button);
+        head.appendChild(text);
+        head.appendChild(actions);
+        row.appendChild(head);
+        list.appendChild(row);
+      });
+    }
+
+    function stopWatch() {
+      watchId = null;
+      if (watchTimer) { clearInterval(watchTimer); watchTimer = null; }
+      $("monitor").hidden = true;
+      $("monitor-frame").removeAttribute("src");
+    }
+    async function tickWatch() {
+      if (!watchId) return;
+      const response = await fetch("/my-admin-page/api/interviews/" + watchId);
+      if (!response.ok) return;
+      const item = await response.json();
+      $("monitor").hidden = false;
+      $("monitor-name").textContent = item.candidate_name || "Candidate";
+      $("monitor-meta").textContent = (item.live ? "Running" : (item.status || "Ended")) + " · " + (item.role || "") + " · run " + (item.workflow_run_id || "—");
+      const camera = item.camera || {};
+      const faces = camera.faces == null ? "—" : camera.faces;
+      $("monitor-vision").textContent = "Faces " + faces + (camera.gaze ? " · " + camera.gaze : "");
+      $("monitor-transcript").textContent = item.transcript || "No transcript yet.";
+      if (item.has_frame) {
+        $("monitor-frame").src = "/my-admin-page/api/interviews/" + watchId + "/frame?t=" + Date.now();
+      }
+      if (!item.live && watchTimer) {
+        clearInterval(watchTimer);
+        watchTimer = null;
+      }
+    }
+    function clock(ms) {
+      if (ms == null || ms < 0) return "—";
+      const total = Math.floor(ms / 1000);
+      return String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
+    }
+    function laneLabel(lane) {
+      if (lane === "candidate") return "Candidate";
+      if (lane === "interviewer") return "Interviewer";
+      if (lane === "warning") return "Flag";
+      if (lane === "camera") return "Camera";
+      if (lane === "agent") return "Agent";
+      return "Call";
+    }
+    function bindReplay() {
+      if (replayBound) return;
+      replayBound = true;
+      const audio = $("replay-audio");
+      audio.addEventListener("timeupdate", paintPlayhead);
+      audio.addEventListener("seeked", paintPlayhead);
+    }
+    function paintPlayhead() {
+      const audio = $("replay-audio");
+      const at = replayOrigin + (audio.currentTime || 0) * 1000;
+      let current = null;
+      let frame = "";
+      document.querySelectorAll("#trace-timeline .tl").forEach(line => {
+        if (!line.dataset.elapsed) return;
+        const ms = Number(line.dataset.elapsed);
+        if (Number.isNaN(ms) || ms > at + 250) return;
+        current = line;
+        if (line.dataset.frame) frame = line.dataset.frame;
+      });
+      if (current !== replayCurrent) {
+        if (replayCurrent) replayCurrent.classList.remove("current");
+        replayCurrent = current;
+        if (current) {
+          current.classList.add("current");
+          const box = $("trace-timeline");
+          box.scrollTop = Math.max(0, current.offsetTop - 48);
+        }
+      }
+      $("replay-now").textContent = current
+        ? (current.dataset.text || "")
+        : ($("replay-audio").hidden ? "" : "Press play. The lines below follow the recording.");
+      const img = $("replay-frame");
+      if (frame && traceId && frame !== replayFrame) {
+        replayFrame = frame;
+        img.src = "/my-admin-page/api/interviews/" + traceId + "/replay/" + frame + ".jpg";
+        img.hidden = false;
+      }
+    }
+    function stopTrace() {
+      traceId = null;
+      traceAudioKey = "";
+      replayOrigin = 0;
+      replayCurrent = null;
+      replayFrame = "";
+      if (traceTimer) { clearInterval(traceTimer); traceTimer = null; }
+      const audio = $("replay-audio");
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.dataset.src = "";
+      audio.hidden = false;
+      $("trace").hidden = true;
+      $("trace-audio").textContent = "";
+      $("trace-timeline").textContent = "";
+      $("replay-frame").hidden = true;
+      $("replay-frame").removeAttribute("src");
+      $("replay-now").textContent = "";
+    }
+    function renderTrace(item) {
+      bindReplay();
+      $("trace").hidden = false;
+      $("trace-name").textContent = item.candidate_name || "Candidate";
+      const ended = item.ended_how ? " · " + item.ended_how : "";
+      $("trace-meta").textContent = (item.live ? "Running" : (item.status || "Ended"))
+        + " · " + (item.role || "")
+        + " · run " + (item.workflow_run_id || "—")
+        + " · warnings " + (item.warning_count || 0)
+        + ended;
+      const audio = item.audio || {};
+      const spoken = (item.timeline || []).some(row => row.lane === "candidate" || row.lane === "interviewer");
+      if (audio.mixed) {
+        $("trace-note").textContent = item.flags_saved
+          ? "Press play. The transcript, camera flags, and warnings move with the recording. A camera still appears when one was saved for that moment."
+          : "Press play to hear this call and follow the transcript. Camera stills are kept from the next interview onward.";
+      } else if (spoken || item.flags_saved) {
+        $("trace-note").textContent = "There is no recording for this call, so it cannot be played back. The lines below are what was saved.";
+      } else {
+        $("trace-note").textContent = "This call never connected, so there is nothing to replay.";
+      }
+      replayOrigin = Number(item.audio_origin_ms) || 0;
+      const player = $("replay-audio");
+      if (audio.mixed && traceId) {
+        const src = "/my-admin-page/api/interviews/" + traceId + "/audio/mixed";
+        if (player.dataset.src !== src) {
+          player.dataset.src = src;
+          player.src = src;
+        }
+        player.hidden = false;
+      } else {
+        player.hidden = true;
+      }
+      const extraKey = (audio.user ? "u" : "") + (audio.bot ? "b" : "");
+      if (traceAudioKey !== extraKey) {
+        traceAudioKey = extraKey;
+        const box = $("trace-audio");
+        box.textContent = "";
+        [["user", "Candidate only"], ["bot", "Interviewer only"]].forEach(([which, label]) => {
+          if (!audio[which]) return;
+          const wrap = document.createElement("div");
+          const name = document.createElement("label");
+          name.textContent = label;
+          const extra = document.createElement("audio");
+          extra.controls = true;
+          extra.preload = "none";
+          extra.src = "/my-admin-page/api/interviews/" + traceId + "/audio/" + which;
+          wrap.appendChild(name);
+          wrap.appendChild(extra);
+          box.appendChild(wrap);
+        });
+      }
+      const timeline = $("trace-timeline");
+      const playing = !player.paused && !player.ended;
+      if (playing) return;
+      replayCurrent = null;
+      timeline.textContent = "";
+      const rows = item.timeline || [];
+      if (!rows.length) {
+        const empty = document.createElement("p");
+        empty.className = "note";
+        empty.textContent = "Nothing was recorded on this call.";
+        timeline.appendChild(empty);
+        return;
+      }
+      rows.forEach(row => {
+        const line = document.createElement("div");
+        line.className = "tl";
+        if (row.elapsed_ms != null) line.dataset.elapsed = String(row.elapsed_ms);
+        if (row.frame != null) line.dataset.frame = String(row.frame);
+        line.dataset.text = row.text || "";
+        const time = document.createElement("div");
+        time.className = "tl-time";
+        time.textContent = clock(row.elapsed_ms);
+        const body = document.createElement("div");
+        const badge = document.createElement("span");
+        badge.className = "badge " + (row.lane === "warning" ? "warn" : row.lane === "camera" ? "cam" : row.lane === "candidate" || row.lane === "interviewer" ? "talk" : "system");
+        badge.textContent = laneLabel(row.lane) + (row.state === "off" ? " cleared" : "");
+        const text = document.createElement("div");
+        text.className = "tl-text";
+        text.textContent = row.text || "";
+        body.appendChild(badge);
+        body.appendChild(text);
+        line.appendChild(time);
+        line.appendChild(body);
+        timeline.appendChild(line);
+      });
+      paintPlayhead();
+    }
+    async function tickTrace() {
+      if (!traceId) return;
+      const response = await fetch("/my-admin-page/api/interviews/" + traceId + "/trace");
+      if (!response.ok) return;
+      const item = await response.json();
+      renderTrace(item);
+      if (!item.live && traceTimer) {
+        clearInterval(traceTimer);
+        traceTimer = null;
+      }
+    }
+    function startTrace(id) {
+      traceId = id;
+      traceAudioKey = "";
+      tickTrace();
+      if (traceTimer) clearInterval(traceTimer);
+      traceTimer = setInterval(tickTrace, 3000);
+    }
+    function startWatch(id) {
+      watchId = id;
+      tickWatch();
+      if (watchTimer) clearInterval(watchTimer);
+      watchTimer = setInterval(tickWatch, 2000);
+    }
+    async function load() {
+      const response = await fetch("/my-admin-page/api");
+      if (response.status === 401) {
+        $("login-card").hidden = false;
+        $("panel").hidden = true;
+        $("logout").hidden = true;
+        return;
+      }
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        $("login-error").textContent = body.detail || "Could not load the admin page.";
+        return;
+      }
+      render(body);
+    }
+
+    async function loadInterviews() {
+      $("interview-error").textContent = "";
+      const response = await fetch("/my-admin-page/api/interviews");
+      if (response.status === 401) return;
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        $("interview-error").textContent = body.detail || "Could not load interviews.";
+        return;
+      }
+      const rows = body.interviews || [];
+      renderInterviews(rows);
+      $("running").textContent = String(rows.filter(item => item.live).length);
+    }
+
+    async function saveWorkflow(id) {
+      $("workflow-error").textContent = "";
+      $("workflow-ok").textContent = "";
+      const response = await fetch("/my-admin-page/api/workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: Number(id) })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        $("workflow-error").textContent = body.detail || "Could not save the workflow.";
+        return;
+      }
+      $("workflow-ok").textContent = "New interviews will use " + (body.workflow_name || ("workflow " + body.workflow_id)) + ".";
+      load();
+    }
+
+    async function saveMetered() {
+      $("metered-error").textContent = "";
+      $("metered-ok").textContent = "";
+      const response = await fetch("/my-admin-page/api/metered", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: $("metered-domain").value, api_key: $("metered-key").value })
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        $("metered-error").textContent = body.detail || "Could not save Metered credentials.";
+        return;
+      }
+      $("metered-key").value = "";
+      $("metered-ok").textContent = "Metered accepted the credentials. New interviews will use " + body.domain + ".";
+      load();
+    }
+
+    $("login").onclick = login;
+    $("password").addEventListener("keydown", (event) => { if (event.key === "Enter") login(); });
+    $("monitor-close").onclick = stopWatch;
+    $("trace-close").onclick = stopTrace;
+    $("logout").onclick = async () => {
+      stopWatch();
+      stopTrace();
+      if (interviewTimer) clearInterval(interviewTimer);
+      await fetch("/my-admin-page/logout", { method: "POST" });
+      $("login-card").hidden = false;
+      $("panel").hidden = true;
+      $("logout").hidden = true;
+    };
+    $("tab-settings").onclick = () => showTab("settings");
+    $("tab-interviews").onclick = () => showTab("interviews");
+    $("save-workflow").onclick = () => saveWorkflow($("workflow-id").value);
+    $("save-metered").onclick = saveMetered;
+    interviewTimer = setInterval(() => {
+      if (!$("panel").hidden && $("settings-panel").hidden) loadInterviews();
+    }, 15000);
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Secrets / local config
+.env
+*.env
+!.env.example
+
+# Runtime data (sessions + saved reports contain transcripts / PII)
+data/sessions/
+data/reports/
+reports/
+server.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

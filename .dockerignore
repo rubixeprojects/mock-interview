@@ -1,6 +1,0 @@
-.env
-.git
-data
-server.log
-php-server.pid
-*.md

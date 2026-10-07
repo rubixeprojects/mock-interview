@@ -1,0 +1,388 @@
+# =============================================================================
+# LiteLLM + Dograh — standalone deployment for a fresh server
+# =============================================================================
+# Live stack: Dograh voice agent (API, UI), the interview app, computer vision,
+# Postgres, Redis, MinIO, and the MPS shim. LiteLLM, Windmill, and local coturn
+# are commented out below and are not started.
+#
+# All host-facing URLs use ${HOST_IP} (the server's LAN/public IP), never
+# localhost, so browsers and other machines can reach the services.
+#
+# Usage:
+#   cp .env.example .env      # then fill HOST_IP + the secrets
+#   docker compose up -d
+#   Interview  : http://<HOST_IP>:8080
+#   Dograh UI  : http://<HOST_IP>:3010
+# =============================================================================
+
+# Legacy Compose schema version. Docker Compose v2 ignores this field (the
+# spec is versionless); kept for compatibility with tools that still expect it.
+version: "3.9"
+
+name: litellm-dograh
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # --------------------------------------------------------------------------
+  # LiteLLM — not used on this server. Left here commented so compose does not
+  # start a container for it.
+  # --------------------------------------------------------------------------
+  # litellm:
+  #   image: ghcr.io/berriai/litellm:main-latest
+  #   restart: always
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   command: ["--config", "/app/config.yaml", "--port", "4000"]
+  #   environment:
+  #     LITELLM_MASTER_KEY: "${LITELLM_MASTER_KEY:?set LITELLM_MASTER_KEY in .env}"
+  #     LITELLM_SALT_KEY: "${LITELLM_SALT_KEY:?set LITELLM_SALT_KEY in .env}"
+  #     DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/${LITELLM_DB_NAME:-litellm}"
+  #     STORE_MODEL_IN_DB: "True"
+  #     LITELLM_DISABLE_NO_REDIS_WARNING: "true"
+  #     PROXY_BASE_URL: "http://${HOST_IP}:4000"
+  #     UI_USERNAME: "${LITELLM_UI_USERNAME:-admin}"
+  #     UI_PASSWORD: "${LITELLM_UI_PASSWORD:?set LITELLM_UI_PASSWORD in .env}"
+  #   ports:
+  #     - "4000:4000"
+  #   volumes:
+  #     - ./litellm-config.yaml:/app/config.yaml:ro
+  #   logging: *default-logging
+  #   networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Shared datastores (one Postgres for BOTH Dograh and LiteLLM)
+  # --------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      # Dograh uses this default database; the initdb script additionally
+      # creates a separate "${LITELLM_DB_NAME:-litellm}" database for LiteLLM.
+      POSTGRES_DB: postgres
+      LITELLM_DB_NAME: "${LITELLM_DB_NAME:-litellm}"
+      # initdb also creates a dedicated "${WINDMILL_DB_NAME:-windmill}" database.
+      WINDMILL_DB_NAME: "${WINDMILL_DB_NAME:-windmill}"
+    volumes:
+      - dograh_postgres_data:/var/lib/postgresql/data
+      # Runs once on first init to create the LiteLLM database.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    logging: *default-logging
+    networks: [stack]
+
+  redis:
+    image: redis:7
+    restart: always
+    command: >
+      --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    volumes:
+      - dograh_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+    logging: *default-logging
+    networks: [stack]
+
+  minio:
+    # Upstream minio/minio was removed from Docker Hub (and Quay now requires
+    # a login). pgsty/silo is a drop-in MinIO-compatible image that still pulls.
+    image: pgsty/silo:latest
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}"
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    ports:
+      # Bound to all interfaces so browsers on the LAN can fetch recordings.
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - dograh_minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Local coturn is not used. Voice TURN is Metered. Commented so compose does
+  # not start it.
+  # --------------------------------------------------------------------------
+  # coturn:
+  #   profiles: ["local-turn"]
+  #   image: coturn/coturn:4.6.3
+  #   network_mode: host
+  #   restart: "no"
+  #   command:
+  #     - -n
+  #     - --log-file=stdout
+  #     - --listening-port=3478
+  #     - --fingerprint
+  #     - --use-auth-secret
+  #     - --static-auth-secret=${TURN_SECRET:-}
+  #     - --realm=mockinterview
+  #     - --external-ip=${HOST_IP}/${TURN_INTERNAL_IP:-}
+  #     - --min-port=${TURN_MIN_PORT:-49160}
+  #     - --max-port=${TURN_MAX_PORT:-49200}
+  #     - --no-cli
+  #     - --no-multicast-peers
+  #   logging: *default-logging
+
+  # --------------------------------------------------------------------------
+  # Dograh — application
+  # --------------------------------------------------------------------------
+  api:
+    image: ${DOGRAH_REGISTRY:-dograhai}/dograh-api:latest
+    restart: always
+    environment:
+      ENVIRONMENT: "local"
+      LOG_LEVEL: "INFO"
+      ENABLE_SIGNUP: "${ENABLE_SIGNUP:-true}"
+      # Public origin the browser uses to reach this API (WebRTC signaling,
+      # embed links). Set PUBLIC_API_ENDPOINT to the Cloudflare hostname when
+      # port 8000 is not open. Never localhost.
+      BACKEND_API_ENDPOINT: "${PUBLIC_API_ENDPOINT:-http://${HOST_IP}:8000}"
+      PUBLIC_HOST: ""
+      PUBLIC_BASE_URL: ""
+      DATABASE_URL: "postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
+      # Bundled MinIO object storage.
+      ENABLE_AWS_S3: "false"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_PUBLIC_ENDPOINT: "http://${HOST_IP}:9000"
+      MINIO_ACCESS_KEY: "${MINIO_ROOT_USER:-minioadmin}"
+      MINIO_SECRET_KEY: "${MINIO_ROOT_PASSWORD}"
+      MINIO_BUCKET: "voice-audio"
+      MINIO_SECURE: "false"
+      FASTAPI_WORKERS: "${FASTAPI_WORKERS:-1}"
+      ENABLE_ARI_MANAGER: "true"
+      ENABLE_CAMPAIGN_ORCHESTRATOR: "true"
+      FORWARDED_ALLOW_IPS: "*"
+      # Local coturn only. Leave ENABLE_COTURN false when browsers use Metered.
+      # TURN_HOST is the address this container dials (the host private IP when
+      # coturn uses host networking).
+      ENABLE_COTURN: "${ENABLE_COTURN:-false}"
+      FORCE_TURN_RELAY: "${FORCE_TURN_RELAY:-false}"
+      TURN_SECRET: "${TURN_SECRET:-}"
+      TURN_HOST: "${TURN_INTERNAL_IP:-}"
+      TURN_PORT: "${TURN_PORT:-3478}"
+      SERVER_IP: "${HOST_IP}"
+      # REQUIRED: strong secret used to sign OSS auth tokens.
+      OSS_JWT_SECRET: "${OSS_JWT_SECRET:?set OSS_JWT_SECRET in .env}"
+      ENABLE_TELEMETRY: "${ENABLE_TELEMETRY:-false}"
+      # Knowledge Base document processing. Point at the LOCAL mps-shim instead of
+      # the hosted MPS (services.dograh.com), which 403s document/process on this
+      # self-hosted OSS box. The shim handles /api/v1/document/process locally and
+      # proxies every other MPS call upstream. See the `mps-shim` service below.
+      MPS_API_URL: "http://mps-shim:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/api/v1/health'').read()"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
+    networks: [stack]
+
+  ui:
+    image: ${DOGRAH_REGISTRY:-dograhai}/dograh-ui:latest
+    restart: always
+    environment:
+      HOSTNAME: "0.0.0.0"
+      # Server-side (SSR) URL over the internal Docker network.
+      BACKEND_URL: "http://api:8000"
+      NODE_ENV: "oss"
+      ENABLE_TELEMETRY: "${ENABLE_TELEMETRY:-false}"
+    ports:
+      - "3010:3010"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:3010 || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
+    networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Computer-vision predictions. Internal only: the interview app proxies
+  # camera frames here. Not published on the host.
+  # --------------------------------------------------------------------------
+  cv:
+    build:
+      context: ../server-code/mock_interview-main/dlib_video/old_scripts
+    image: mock-interview-cv:local
+    restart: always
+    volumes:
+      - ../server-code/mock_interview-main/dlib_video/old_scripts/advanced_video_analysis_api.py:/app/advanced_video_analysis_api.py:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    logging: *default-logging
+    networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Mock-interview backend (demo page + /api). Apache in a container, not the
+  # host's `php -S`. Secrets come from php-backend/.env at runtime (not the image).
+  # Dograh signaling stays on the public DOGRAH_BASE_URL so the browser can reach it.
+  # --------------------------------------------------------------------------
+  interview:
+    build:
+      context: ../php-backend
+    image: mock-interview-backend:local
+    restart: always
+    env_file:
+      - path: ../php-backend/.env
+        required: false
+    ports:
+      - "8080:80"
+    volumes:
+      # Host source. PHP edits under php-backend/ are served on the next request.
+      - ../php-backend:/var/www/html
+    depends_on:
+      api:
+        condition: service_healthy
+      cv:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    logging: *default-logging
+    networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Windmill is not used on this server. Commented so compose does not start it.
+  # --------------------------------------------------------------------------
+  # windmill_server:
+  #   image: ${WINDMILL_IMAGE:-ghcr.io/windmill-labs/windmill:main}
+  #   restart: always
+  #   environment:
+  #     DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${WINDMILL_DB_NAME:-windmill}?sslmode=disable"
+  #     MODE: "server"
+  #   ports:
+  #     - "8002:8000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - windmill_worker_logs:/tmp/windmill/logs
+  #   logging: *default-logging
+  #   networks: [stack]
+  #
+  # windmill_worker:
+  #   image: ${WINDMILL_IMAGE:-ghcr.io/windmill-labs/windmill:main}
+  #   restart: always
+  #   environment:
+  #     DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/${WINDMILL_DB_NAME:-windmill}?sslmode=disable"
+  #     MODE: "worker"
+  #     WORKER_GROUP: "default"
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1024M
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - windmill_dependency_cache:/tmp/windmill/cache
+  #     - windmill_worker_logs:/tmp/windmill/logs
+  #     - ../../evaluation-worker/internship_api:/usr/src/app/internship_api:ro
+  #   logging: *default-logging
+  #   networks: [stack]
+
+  # --------------------------------------------------------------------------
+  # Local MPS shim — makes Dograh's Knowledge Base "files" feature work on this
+  # self-hosted OSS box. Dograh delegates document parse/chunk to its HOSTED MPS
+  # (services.dograh.com/api/v1/document/process), which 403s this instance, and
+  # `docling` is not bundled in the api image (no local processing path). This
+  # shim handles /api/v1/document/process LOCALLY — our KB files are text/markdown
+  # so no docling is needed; the Dograh `api` still does the embeddings with the
+  # org's BYOK config — and transparently proxies EVERY OTHER MPS call upstream so
+  # service-keys/pricing/billing keep working. The `api` service sets
+  # MPS_API_URL=http://mps-shim:8000 to route through it. Code: ./mps-shim/app.py
+  # (deps are pip-installed on start to avoid shipping a custom image).
+  # --------------------------------------------------------------------------
+  mps-shim:
+    image: python:3.12-slim
+    restart: always
+    working_dir: /app
+    command:
+      - sh
+      - -lc
+      - "pip install --no-cache-dir 'fastapi==0.115.6' 'uvicorn==0.34.0' 'httpx==0.27.2' 'python-multipart==0.0.12' && exec uvicorn app:app --host 0.0.0.0 --port 8000"
+    environment:
+      MPS_UPSTREAM_URL: "https://services.dograh.com"
+    volumes:
+      - ./mps-shim:/app:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/healthz'').read()"',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    logging: *default-logging
+    networks: [stack]
+
+volumes:
+  dograh_postgres_data:
+  dograh_redis_data:
+  dograh_minio_data:
+  # windmill_dependency_cache:
+  # windmill_worker_logs:
+
+networks:
+  stack:
+    driver: bridge
